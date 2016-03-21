@@ -46,6 +46,7 @@ def scrapyFundIndexDate(startMonth='2006-01', endMonth='2019-01'):
             soup = BeautifulSoup(info_data.text, 'lxml')
 
             if soup == previous_page:
+                datas = datas[:-1]
                 break
 
             previous_page = soup
@@ -68,7 +69,7 @@ def format_table(table):
 
 
 def filter_data(table):
-    engine = create_engine('hedge_funds')
+    engine = create_engine()
     sql = 'select tradingDate, howbuyCode from HOWBUY_FUND_INDEX'
     exist_data = pd.read_sql(sql, engine).sort_values('tradingDate')
     last_update_dates = exist_data.groupby('howbuyCode').last()
@@ -81,10 +82,9 @@ def filter_data(table):
 
 
 if __name__ == '__main__':
-    total_table = scrapyFundIndexDate(startMonth='2015-06')
+    total_table = scrapyFundIndexDate(startMonth='2001-06')
     total_table = format_table(total_table)
     total_table = filter_data(total_table)
     insert_table(total_table,
                  ['tradingDate', 'howbuyCode', 'name', 'indexLevel', 'indexLevelChg', 'adjustedHS300'],
-                 'HOWBUY_FUND_INDEX',
-                 'hedge_funds')
+                 'HOWBUY_FUND_INDEX')

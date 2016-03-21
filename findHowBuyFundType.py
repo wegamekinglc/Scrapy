@@ -14,10 +14,13 @@ from utilities import insert_table
 
 
 def find_latest_date():
-    engine = create_engine('hedge_funds')
+    engine = create_engine()
     sql = 'select DISTINCT(setupDate) from HOWBUY_FUND_TYPE'
     data = pd.read_sql(sql, engine).sort_values('setupDate')
-    return data.iloc[-1]['setupDate']
+    if len(data) > 0:
+        return data.iloc[-1]['setupDate']
+    else:
+        return '1900-01-01'
 
 
 def scrapy_howbuy_fund_type(latest_date='1900-01-01'):
@@ -60,5 +63,4 @@ if __name__ == "__main__":
     total_table = scrapy_howbuy_fund_type(latest_date)
     insert_table(total_table,
                  ['howbuyCODE', 'name', 'fundManagementComp', 'manager', 'setupDate', 'howbuyStrategy'],
-                 'HOWBUY_FUND_TYPE',
-                 'hedge_funds')
+                 'HOWBUY_FUND_TYPE')

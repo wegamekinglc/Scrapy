@@ -59,7 +59,7 @@ def format_table(table):
 
 
 def filter_data(table):
-    engine = create_engine('hedge_funds')
+    engine = create_engine()
     sql = 'select tradingDate, howbuyStrategy from HOWBUY_STYLE_RET'
     exist_data = pd.read_sql(sql, engine).sort_values('tradingDate')
     last_update_dates = exist_data.groupby('howbuyStrategy').last()
@@ -77,5 +77,4 @@ if __name__ == "__main__":
     total_table = filter_data(total_table)
     insert_table(total_table,
                  ['tradingDate', 'howbuyStrategy', 'max_ret', 'min_ret', 'median_ret', 'mean_ret'],
-                 'HOWBUY_STYLE_RET',
-                 'hedge_funds')
+                 'HOWBUY_STYLE_RET')

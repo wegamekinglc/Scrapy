@@ -6,34 +6,33 @@ Created on 2016-2-26
 """
 
 import requests
-import sqlite3
+import pymysql
 import pandas as pd
 
 
-DB_SETTINGS = \
-    {
-        "hedge_funds":
-            {
-                'file': 'D:/dev/laiyuchen/FOF/FOF/hedge_funds.db'
-            }
-    }
+DB_SETTINGS = {'host': 'localhost', 'user': 'root', 'pwd': 'we083826', 'db': 'hedge_fund', 'charset': 'utf8'}
 
 
-def create_engine(db_name):
+def create_engine():
     global DB_SETTINGS
-    setting = DB_SETTINGS[db_name]
-    return sqlite3.connect(setting['file'])
+    return pymysql.connect(host=DB_SETTINGS['host'],
+                           user=DB_SETTINGS['user'],
+                           passwd=DB_SETTINGS['pwd'],
+                           db=DB_SETTINGS['db'],
+                           charset=DB_SETTINGS['charset'])
 
 
-def insert_table(data, field_names, table_name, db_name):
-    engine = create_engine(db_name)
-    engine.isolation_level = "DEFERRED"
+def insert_table(data, field_names, table_name):
+    engine = create_engine()
     fields = ','.join(field_names)
     l = len(field_names)
     sql = "INSERT INTO {0:s} ({1:s}) VALUES ({2:s})" \
-        .format(table_name, fields, ('?,' * l)[:-1])
+        .format(table_name, fields, ('%s,' * l)[:-1])
 
-    engine.executemany(sql, data.values)
+    data_matrix = [list(row) for row in data.values]
+
+    cursor = engine.cursor()
+    cursor.executemany(sql, data_matrix)
     engine.commit()
     engine.close()
 
