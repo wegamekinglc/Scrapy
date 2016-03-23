@@ -13,7 +13,7 @@ from utilities import create_engine
 from utilities import insert_table
 
 
-def scrapy_howbuy_style_return(startMonth='2015-01', endMonth='2019-01'):
+def scrapy_howbuy_style_return(startMonth='2000-01', endMonth='2019-01'):
     startMonth = startMonth.replace('-', '')
     endMonth = endMonth.replace('-', '')
 
