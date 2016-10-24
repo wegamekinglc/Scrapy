@@ -5,7 +5,6 @@ Created on 2016-10-24
 @author: cheng.li
 """
 
-import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
@@ -22,7 +21,7 @@ def extract_sub_links(page_item, iter):
 
 if __name__ == '__main__':
 
-    driver = webdriver.PhantomJS('/home/wegamekinglc/Documents/phantomjs-2.1.1-linux-x86_64/bin/phantomjs')
+    driver = webdriver.PhantomJS('D:/dev/phantomjs-2.1.1-windows/bin/phantomjs.exe')
     home_page = 'http://www.sse.com.cn'
     driver.get('http://www.sse.com.cn/disclosure/overview/')
     js = 'document.write(sseMenuObj.initLeftMenu())'
@@ -40,9 +39,7 @@ if __name__ == '__main__':
                 link = list(page)[0]['href']
                 links.append(home_page + link)
 
-    session = requests.Session()
-    info_data = session.post(links[0])
-    info_data.encoding = 'utf8'
+    driver.get(links[0])
 
-    soup2 = BeautifulSoup(info_data.text, 'lxml')
+    soup2 = BeautifulSoup(driver.page_source, 'lxml')
     print(soup2)
