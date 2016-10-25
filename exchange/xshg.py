@@ -56,7 +56,6 @@ def suspend(query_date):
 
 
 if __name__ == '__main__':
-
     # sse
     df = suspend('2016-10-11')
     print(df)

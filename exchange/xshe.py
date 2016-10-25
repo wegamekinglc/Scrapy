@@ -59,10 +59,7 @@ def suspend(query_date):
                        '原因': reasons})
     return df
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     df = suspend('2016-10-25')
     print(df)
-
-
-

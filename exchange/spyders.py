@@ -18,4 +18,5 @@ def suspend_info(query_date):
 
 
 if __name__ == "__main__":
-    print(suspend_info('2016-10-25'))
+    res = suspend_info('2016-10-25')
+    print(res)
