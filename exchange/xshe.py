@@ -10,10 +10,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 
 
-if __name__ == '__main__':
-
-    query_date = '2016-10-25'
-
+def suspend(query_date):
     codes = []
     names = []
     stop_times = []
@@ -63,7 +60,11 @@ if __name__ == '__main__':
                        '复牌时间': back_times,
                        '停牌期限': durations,
                        '停牌原因': reasons})
+    return df
 
+if __name__ == '__main__':
+
+    df = suspend('2016-10-25')
     print(df)
 
 
