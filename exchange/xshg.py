@@ -12,6 +12,11 @@ import pandas as pd
 
 
 def suspend(query_date):
+    codes = []
+    names = []
+    status = []
+    reasons = []
+
     with requests.Session() as session:
         session.headers['Referer'] = 'http://www.sse.com.cn/disclosure/dealinstruc/suspension/'
 
@@ -29,12 +34,25 @@ def suspend(query_date):
         soup = BeautifulSoup(info_data.text, 'lxml')
         content = json.loads(soup.text.split('(')[1].strip(')'))
 
-        suspend_table = pd.DataFrame(content['result'])
-        del suspend_table['ROWNUM_']
-        del suspend_table['seq']
-        suspend_table = suspend_table[suspend_table.productCode.str.startswith(('0', '3', '6'))]
-        suspend_table.reset_index(drop=True, inplace=True)
-    return suspend_table
+        json_data = content['result']
+
+        for row in json_data:
+            if row['showDate'] == query_date and row['productCode'].startswith('6'):
+                codes.append(row['productCode'])
+                names.append(row['productName'])
+
+                if row['stopTime'].find('停牌终止') != -1:
+                    status.append('复牌')
+                else:
+                    status.append('停牌')
+
+                reasons.append(row['stopReason'])
+
+    df = pd.DataFrame({'证券代码': codes,
+                       '证券简称': names,
+                       '状态': status,
+                       '原因': reasons})
+    return df
 
 
 if __name__ == '__main__':

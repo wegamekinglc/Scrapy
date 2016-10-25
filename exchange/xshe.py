@@ -13,9 +13,7 @@ import pandas as pd
 def suspend(query_date):
     codes = []
     names = []
-    stop_times = []
-    back_times = []
-    durations = []
+    status = []
     reasons = []
 
     with requests.Session() as session:
@@ -46,9 +44,10 @@ def suspend(query_date):
                     cells = row.find_all('td', {'class', 'cls-data-td'})
                     codes.append(cells[0].text)
                     names.append(cells[1].text)
-                    stop_times.append(cells[2].text)
-                    back_times.append(cells[3].text)
-                    durations.append(cells[4].text)
+                    if cells[4].text == '取消停牌':
+                        status.append('复牌')
+                    else:
+                        status.append('停牌')
                     reasons.append(cells[5].text)
             else:
                 break
@@ -56,10 +55,8 @@ def suspend(query_date):
 
     df = pd.DataFrame({'证券代码': codes,
                        '证券简称': names,
-                       '停牌时间': stop_times,
-                       '复牌时间': back_times,
-                       '停牌期限': durations,
-                       '停牌原因': reasons})
+                       '状态': status,
+                       '原因': reasons})
     return df
 
 if __name__ == '__main__':
