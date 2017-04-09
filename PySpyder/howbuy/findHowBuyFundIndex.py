@@ -85,11 +85,10 @@ def find_latest_date():
 def fund_index_spyder(ref_date, force_update=False):
     start_month = int(ref_date.strftime('%Y%m'))
 
-    latest_date = find_latest_date()
-    latest_next_month = int(latest_date.strftime('%Y%m')) + 1
-
     if not force_update:
-        start_month = min(start_month, latest_next_month)
+        latest_date = find_latest_date()
+        latest_next_month = int(latest_date.strftime('%Y%m')) + 1
+        start_month = latest_next_month
 
     total_table = load_fund_index(start_month=start_month)
 

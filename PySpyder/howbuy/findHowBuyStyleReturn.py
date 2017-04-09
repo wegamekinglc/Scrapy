@@ -43,7 +43,7 @@ def load_howbuy_style_return(start_month=200001, end_month=202101):
                                 col_level=2,
                                 col_names=['No.', '统计月份', '好买策略', '最大值', '最小值', '中位数', '均值', '沪深300同期收益率'])
         datas.append(fund_data)
-        spyder_logger("Page No. {0:4d} is finished.".format(page))
+        spyder_logger.info("Page No. {0:4d} is finished.".format(page))
 
     if datas:
         total_table = pd.concat(datas)
@@ -76,11 +76,10 @@ def find_latest_date():
 def fund_style_return_spyder(ref_date, force_update=False):
     start_month = int(ref_date.strftime('%Y%m'))
 
-    latest_date = find_latest_date()
-    latest_next_month = int(latest_date.strftime('%Y%m')) + 1
-
     if not force_update:
-        start_month = min(start_month, latest_next_month)
+        latest_date = find_latest_date()
+        latest_next_month = int(latest_date.strftime('%Y%m')) + 1
+        start_month = latest_next_month
 
     total_table = load_howbuy_style_return(start_month)
     if not total_table.empty:

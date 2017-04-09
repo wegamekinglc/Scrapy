@@ -67,10 +67,10 @@ def load_howbuy_fund_type(ref_date):
 
 def fund_type_spyder(ref_date, force_update=False):
     ref_date = ref_date.strftime('%Y-%m-%d')
-    latest_next_date = (find_latest_date() + dt.timedelta(days=1)).strftime('%Y-%m-%d')
 
     if not force_update:
-        ref_date = min(ref_date, latest_next_date)
+        latest_next_date = (find_latest_date() + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+        ref_date = latest_next_date
 
     total_table = load_howbuy_fund_type(ref_date)
 
