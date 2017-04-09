@@ -5,12 +5,13 @@ Created on 2016-2-26
 @author: cheng.li
 """
 
-from bs4 import BeautifulSoup
 import pandas as pd
-from utilities import parse_table
-from utilities import login
-from utilities import create_engine
-from utilities import insert_table
+from bs4 import BeautifulSoup
+
+from PySpyder.utilities import create_engine
+from PySpyder.utilities import insert_table
+from PySpyder.utilities import login
+from PySpyder.utilities import parse_table
 
 
 def find_latest_date():
@@ -23,7 +24,7 @@ def find_latest_date():
         return pd.Timestamp('1990-01-01')
 
 
-def scrapy_howbuy_fund_type(latest_date='1900-01-01'):
+def load_howbuy_fund_type(latest_date='1900-01-01'):
     session = login()
     quert_url_template = 'http://simudata.howbuy.com/profile/newJjjz.htm?orderBy=clrq' \
                          '&orderByDesc=true&jjdm=&jldm=&glrm=&cllx=qb&zzxs=qb&syMin=&syMax=&' \
@@ -61,8 +62,7 @@ def scrapy_howbuy_fund_type(latest_date='1900-01-01'):
 
 if __name__ == "__main__":
     latest_date = find_latest_date()
-    total_table = scrapy_howbuy_fund_type(latest_date)
-    total_table.to_csv('fund_type_data.csv')
+    total_table = load_howbuy_fund_type(latest_date)
     insert_table(total_table,
                  ['howbuyCODE', 'fundName', 'fundManagementComp', 'manager', 'setupDate', 'howbuyStrategy', 'adjPrice', 'priceDate'],
                  'HOWBUY_FUND_TYPE')

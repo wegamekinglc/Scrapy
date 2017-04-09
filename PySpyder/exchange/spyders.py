@@ -6,8 +6,9 @@ Created on 2016-10-25
 """
 
 import pandas as pd
-import exchange.xshe as xshe
-import exchange.xshg as xshg
+
+import PySpyder.exchange.xshe as xshe
+import PySpyder.exchange.xshg as xshg
 
 
 def suspend_info(query_date):

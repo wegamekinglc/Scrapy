@@ -5,15 +5,16 @@ Created on 2016-2-26
 @author: cheng.li
 """
 
-from bs4 import BeautifulSoup
 import pandas as pd
-from utilities import login
-from utilities import parse_table
-from utilities import create_engine
-from utilities import insert_table
+from bs4 import BeautifulSoup
+
+from PySpyder.utilities import create_engine
+from PySpyder.utilities import insert_table
+from PySpyder.utilities import login
+from PySpyder.utilities import parse_table
 
 
-def scrapy_howbuy_style_return(startMonth='2000-01', endMonth='2019-01'):
+def load_howbuy_style_return(startMonth='2000-01', endMonth='2019-01'):
     startMonth = startMonth.replace('-', '')
     endMonth = endMonth.replace('-', '')
 
@@ -66,13 +67,13 @@ def filter_data(table):
 
     for name in last_update_dates.index:
         last_date = last_update_dates.ix[name]['tradingDate']
-        table = table[(table['好买策略'] != name) | (table['统计月份'] > last_date)]
+        table = table[(table['好买策略'] != name) | (pd.to_datetime(table['统计月份']) > last_date)]
 
     return table
 
 
 if __name__ == "__main__":
-    total_table = scrapy_howbuy_style_return()
+    total_table = load_howbuy_style_return()
     total_table = format_table(total_table)
     total_table = filter_data(total_table)
     insert_table(total_table,

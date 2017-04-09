@@ -6,15 +6,17 @@ Created on 2016-2-26
 """
 
 from __future__ import division
+
 import pandas as pd
 from bs4 import BeautifulSoup
-from utilities import login
-from utilities import parse_table
-from utilities import create_engine
-from utilities import insert_table
+
+from PySpyder.utilities import create_engine
+from PySpyder.utilities import insert_table
+from PySpyder.utilities import login
+from PySpyder.utilities import parse_table
 
 
-def scrapyFundIndexDate(startMonth='2006-01', endMonth='2019-01'):
+def load_fund_index(startMonth='2006-01', endMonth='2019-01'):
     startMonth = startMonth.replace('-', '')
     endMonth = endMonth.replace('-', '')
 
@@ -76,13 +78,13 @@ def filter_data(table):
 
     for code in last_update_dates.index:
         last_date = last_update_dates.ix[code]['tradingDate']
-        table = table[(table['指数代码'] != code) | (table['统计月份'] > last_date)]
+        table = table[(table['指数代码'] != code) | (pd.to_datetime(table['统计月份']) > last_date)]
 
     return table
 
 
 if __name__ == '__main__':
-    total_table = scrapyFundIndexDate(startMonth='2001-06')
+    total_table = load_fund_index(startMonth='2001-06')
     total_table = format_table(total_table)
     total_table = filter_data(total_table)
     insert_table(total_table,
