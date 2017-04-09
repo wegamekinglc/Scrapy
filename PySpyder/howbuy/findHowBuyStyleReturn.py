@@ -5,6 +5,7 @@ Created on 2016-2-26
 @author: cheng.li
 """
 
+import datetime as dt
 import pandas as pd
 from bs4 import BeautifulSoup
 
@@ -12,12 +13,10 @@ from PySpyder.howbuy.utilities import create_engine
 from PySpyder.howbuy.utilities import insert_table
 from PySpyder.howbuy.utilities import login
 from PySpyder.howbuy.utilities import parse_table
+from PySpyder.utilities import spyder_logger
 
 
-def load_howbuy_style_return(startMonth='2000-01', endMonth='2019-01'):
-    startMonth = startMonth.replace('-', '')
-    endMonth = endMonth.replace('-', '')
-
+def load_howbuy_style_return(start_month=200001, end_month=202101):
     session = login()
     querl_url_template = 'http://simudata.howbuy.com/profile/strategies.htm?staDate={0}' \
                          '&cllx=qb&endDate={1}&page={2}&syl=j1y'
@@ -28,29 +27,34 @@ def load_howbuy_style_return(startMonth='2000-01', endMonth='2019-01'):
 
     while True:
         page += 1
-        query_url = querl_url_template.format(startMonth, endMonth, page)
+        query_url = querl_url_template.format(start_month, end_month, page)
         info_data = session.post(query_url)
         soup = BeautifulSoup(info_data.text, 'lxml')
 
-        if soup == previous_page:
-            break
-
-        previous_page = soup
         tables = soup.find_all('table')
         target_table = tables[1]
 
-        fundData = parse_table(target_table,
-                               col_level=2,
-                               col_names=['No.', '统计月份', '好买策略', '最大值', '最小值', '中位数', '均值', '沪深300同期收益率'])
-        datas.append(fundData)
-        print(u"第{0:4d}页数据抓取完成".format(page))
+        if soup == previous_page or target_table.tbody.td.text == '未查询到相关数据！':
+            break
 
-    total_table = pd.concat(datas)
-    return total_table.reset_index(drop=True)
+        previous_page = soup
+
+        fund_data = parse_table(target_table,
+                                col_level=2,
+                                col_names=['No.', '统计月份', '好买策略', '最大值', '最小值', '中位数', '均值', '沪深300同期收益率'])
+        datas.append(fund_data)
+        spyder_logger("Page No. {0:4d} is finished.".format(page))
+
+    if datas:
+        total_table = pd.concat(datas)
+        return total_table.reset_index(drop=True)
+    else:
+        return pd.DataFrame()
 
 
 def format_table(table):
-    table['统计月份'] = table['统计月份'].apply(lambda x: str(int(x) // 100) + '-' + '{0:02d}'.format(int(x) - int(x) // 100 * 100) + '-01')
+    table['统计月份'] = table['统计月份'].apply(
+        lambda x: str(int(x) // 100) + '-' + '{0:02d}'.format(int(x) - int(x) // 100 * 100) + '-01')
     table = table[['统计月份', '好买策略', '最大值', '最小值', '中位数', '均值']]
     table.loc[:, '最大值'] *= 100
     table.loc[:, '最小值'] *= 100
@@ -59,23 +63,32 @@ def format_table(table):
     return table
 
 
-def filter_data(table):
+def find_latest_date():
     engine = create_engine()
     sql = 'select tradingDate, howbuyStrategy from HOWBUY_STYLE_RET'
     exist_data = pd.read_sql(sql, engine).sort_values('tradingDate')
-    last_update_dates = exist_data.groupby('howbuyStrategy').last()
+    if len(exist_data) > 0:
+        return exist_data.iloc[-1]['tradingDate']
+    else:
+        return pd.Timestamp('1990-01-01')
 
-    for name in last_update_dates.index:
-        last_date = last_update_dates.ix[name]['tradingDate']
-        table = table[(table['好买策略'] != name) | (pd.to_datetime(table['统计月份']) > last_date)]
 
-    return table
+def fund_style_return_spyder(ref_date, force_update=False):
+    start_month = int(ref_date.strftime('%Y%m'))
+
+    latest_date = find_latest_date()
+    latest_next_month = int(latest_date.strftime('%Y%m')) + 1
+
+    if not force_update:
+        start_month = min(start_month, latest_next_month)
+
+    total_table = load_howbuy_style_return(start_month)
+    if not total_table.empty:
+        total_table = format_table(total_table)
+        insert_table(total_table,
+                     ['tradingDate', 'howbuyStrategy', 'max_ret', 'min_ret', 'median_ret', 'mean_ret'],
+                     'HOWBUY_STYLE_RET')
 
 
 if __name__ == "__main__":
-    total_table = load_howbuy_style_return()
-    total_table = format_table(total_table)
-    total_table = filter_data(total_table)
-    insert_table(total_table,
-                 ['tradingDate', 'howbuyStrategy', 'max_ret', 'min_ret', 'median_ret', 'mean_ret'],
-                 'HOWBUY_STYLE_RET')
+    fund_style_return_spyder(dt.datetime.now())
