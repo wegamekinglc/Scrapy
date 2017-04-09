@@ -20,7 +20,7 @@ def find_latest_date():
     if len(data) > 0:
         return data.iloc[-1]['setupDate']
     else:
-        return '1900-01-01'
+        return pd.Timestamp('1990-01-01')
 
 
 def scrapy_howbuy_fund_type(latest_date='1900-01-01'):
@@ -50,17 +50,19 @@ def scrapy_howbuy_fund_type(latest_date='1900-01-01'):
         full_table.append(fundData)
         print(u"第{0:4d}页数据抓取完成".format(page))
 
-        if fundData.iloc[-1]['成立日期'] < latest_date:
+        if pd.Timestamp(fundData.iloc[-1]['成立日期']) < latest_date:
             break
 
     total_table = pd.concat(full_table)
-    total_table = total_table[total_table['成立日期'] > latest_date]
-    return total_table[['基金代码', '基金简称', '基金管理人', '基金经理', '成立日期', '好买策略']]
+    total_table = total_table[(total_table['净值日期'] != 0) & (total_table['成立日期'] != 0)]
+    total_table = total_table[pd.to_datetime(total_table['成立日期'], format='%Y-%m-%d') > latest_date]
+    return total_table[['基金代码', '基金简称', '基金管理人', '基金经理', '成立日期', '好买策略', '复权单位净值', '净值日期']]
 
 
 if __name__ == "__main__":
     latest_date = find_latest_date()
     total_table = scrapy_howbuy_fund_type(latest_date)
+    total_table.to_csv('fund_type_data.csv')
     insert_table(total_table,
-                 ['howbuyCODE', 'name', 'fundManagementComp', 'manager', 'setupDate', 'howbuyStrategy'],
+                 ['howbuyCODE', 'fundName', 'fundManagementComp', 'manager', 'setupDate', 'howbuyStrategy', 'adjPrice', 'priceDate'],
                  'HOWBUY_FUND_TYPE')

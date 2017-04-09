@@ -86,5 +86,5 @@ if __name__ == '__main__':
     total_table = format_table(total_table)
     total_table = filter_data(total_table)
     insert_table(total_table,
-                 ['tradingDate', 'howbuyCode', 'name', 'indexLevel', 'indexLevelChg', 'adjustedHS300'],
+                 ['tradingDate', 'howbuyCode', 'indexName', 'indexLevel', 'indexLevelChg', 'adjustedHS300'],
                  'HOWBUY_FUND_INDEX')

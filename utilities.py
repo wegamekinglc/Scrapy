@@ -5,40 +5,32 @@ Created on 2016-2-26
 @author: cheng.li
 """
 
+import six
 import requests
-import pymysql
+import sqlalchemy
 import pandas as pd
 
-
-DB_SETTINGS = {'host': 'localhost', 'user': 'root', 'pwd': 'we083826', 'db': 'hedge_fund', 'charset': 'utf8'}
+DB_SETTINGS = {'host': 'localhost', 'user': 'hf_admin', 'pwd': 'we083826', 'db': 'hedge_fund', 'charset': 'utf8'}
 
 
 def create_engine():
     global DB_SETTINGS
-    return pymysql.connect(host=DB_SETTINGS['host'],
-                           user=DB_SETTINGS['user'],
-                           passwd=DB_SETTINGS['pwd'],
-                           db=DB_SETTINGS['db'],
-                           charset=DB_SETTINGS['charset'])
+    return sqlalchemy.create_engine("mysql+pymysql://{user}:{passwd}@{host}/{db}?charset={charset}"
+                                    .format(host=DB_SETTINGS['host'],
+                                            user=DB_SETTINGS['user'],
+                                            passwd=DB_SETTINGS['pwd'],
+                                            db=DB_SETTINGS['db'],
+                                            charset=DB_SETTINGS['charset']))
 
 
 def insert_table(data, field_names, table_name):
     engine = create_engine()
-    fields = ','.join(field_names)
-    l = len(field_names)
-    sql = "INSERT INTO {0:s} ({1:s}) VALUES ({2:s})" \
-        .format(table_name, fields, ('%s,' * l)[:-1])
-
-    data_matrix = [list(row) for row in data.values]
-
-    cursor = engine.cursor()
-    cursor.executemany(sql, data_matrix)
-    engine.commit()
-    engine.close()
+    data.columns = field_names
+    data.to_sql(table_name, engine, if_exists='append', index=False)
 
 
 def try_parse_percentage(x):
-    u"""
+    """
 
     parse字符串形式的百分数为浮点数
 
@@ -56,7 +48,6 @@ def try_parse_percentage(x):
 
 
 def try_parse_float(x):
-
     try:
         return float(x)
     except ValueError:
@@ -64,7 +55,6 @@ def try_parse_float(x):
 
 
 def parse_table(target_table, col_level=1, col_names=None):
-
     full_table = []
     trs = target_table.find_all('tr')
     if not col_names:
