@@ -5,7 +5,6 @@ Created on 2016-2-26
 @author: cheng.li
 """
 
-import six
 import requests
 import sqlalchemy
 import pandas as pd

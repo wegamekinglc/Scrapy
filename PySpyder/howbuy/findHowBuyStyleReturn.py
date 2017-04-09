@@ -8,10 +8,10 @@ Created on 2016-2-26
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from PySpyder.utilities import create_engine
-from PySpyder.utilities import insert_table
-from PySpyder.utilities import login
-from PySpyder.utilities import parse_table
+from PySpyder.howbuy.utilities import create_engine
+from PySpyder.howbuy.utilities import insert_table
+from PySpyder.howbuy.utilities import login
+from PySpyder.howbuy.utilities import parse_table
 
 
 def load_howbuy_style_return(startMonth='2000-01', endMonth='2019-01'):

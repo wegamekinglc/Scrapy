@@ -10,10 +10,10 @@ from __future__ import division
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from PySpyder.utilities import create_engine
-from PySpyder.utilities import insert_table
-from PySpyder.utilities import login
-from PySpyder.utilities import parse_table
+from PySpyder.howbuy.utilities import create_engine
+from PySpyder.howbuy.utilities import insert_table
+from PySpyder.howbuy.utilities import login
+from PySpyder.howbuy.utilities import parse_table
 
 
 def load_fund_index(startMonth='2006-01', endMonth='2019-01'):
