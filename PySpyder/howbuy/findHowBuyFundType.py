@@ -83,4 +83,4 @@ def fund_type_spyder(ref_date, force_update=False):
 
 
 if __name__ == "__main__":
-    fund_type_spyder(dt.datetime.now(), force_update=False)
+    fund_type_spyder(dt.datetime.now() - dt.timedelta(days=360), force_update=False)

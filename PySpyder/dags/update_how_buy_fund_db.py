@@ -61,12 +61,17 @@ run_this2 = PythonOperator(
     python_callable=update_fund_type,
     dag=dag)
 
+run_this2.set_upstream(run_this1)
+
+
 run_this3 = PythonOperator(
     task_id='update_fund_style_return',
     provide_context=True,
     python_callable=update_fund_style_ret,
     dag=dag)
 
+run_this3.set_upstream(run_this2)
+
 
 if __name__ == '__main__':
-    update_fund_type(ds=None, ts='2011-07-12 09:30:00')
+    update_fund_index()
