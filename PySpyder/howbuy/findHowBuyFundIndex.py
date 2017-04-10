@@ -60,6 +60,7 @@ def load_fund_index(start_month=200601, end_month=202201):
 
     if datas:
         total_table = pd.concat(datas)
+        total_table.drop_duplicates(['统计月份', '指数代码'], inplace=True)
         return total_table.reset_index(drop=True)
     else:
         return pd.DataFrame()
