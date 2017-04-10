@@ -15,8 +15,9 @@ sys.path.append('/home/wegamekinglc/Documents/dev/coding/Scrapy')
 from PySpyder.howbuy.findHowBuyFundIndex import fund_index_spyder
 from PySpyder.howbuy.findHowBuyFundType import fund_type_spyder
 from PySpyder.howbuy.findHowBuyStyleReturn import fund_style_return_spyder
+from PySpyder.howbuy.findHowBuyFundHolding import fund_holding_spyder
 
-start_date = dt.datetime(2010, 1, 1)
+start_date = dt.datetime(2017, 1, 1)
 dag_name = 'update_how_buy_fund_db'
 
 default_args = {
@@ -28,7 +29,7 @@ default_args = {
 dag = DAG(
     dag_id=dag_name,
     default_args=default_args,
-    schedule_interval='30 9 1 * *')
+    schedule_interval='30 9 * * *')
 
 
 def update_fund_index(ds, **kwargs):
@@ -49,6 +50,12 @@ def update_fund_style_ret(ds, **kwargs):
     return 'updating for fund style return is finished for {0}'.format(ref_date)
 
 
+def update_fund_holding(ds, **kwargs):
+    ref_date = dt.datetime.strptime(kwargs['ts'][:10], '%Y-%m-%d')
+    fund_holding_spyder(ref_date=ref_date)
+    return 'updating for fund holding is finished for {0}'.format(ref_date)
+
+
 run_this1 = PythonOperator(
     task_id='update_fund_index',
     provide_context=True,
@@ -65,6 +72,12 @@ run_this3 = PythonOperator(
     task_id='update_fund_style_return',
     provide_context=True,
     python_callable=update_fund_style_ret,
+    dag=dag)
+
+run_this4 = PythonOperator(
+    task_id='update_fund_holding',
+    provide_context=True,
+    python_callable=update_fund_holding,
     dag=dag)
 
 
