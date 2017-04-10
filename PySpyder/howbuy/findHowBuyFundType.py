@@ -50,6 +50,7 @@ def load_howbuy_fund_type(ref_date):
         target_table = tables[1]
 
         fund_data = parse_table(target_table)
+        fund_data = fund_data[fund_data['成立日期'] != 0]
         if fund_data.iloc[-1]['成立日期'] < ref_date:
             break
 
@@ -58,6 +59,7 @@ def load_howbuy_fund_type(ref_date):
 
     if full_table:
         total_table = pd.concat(full_table)
+        total_table.drop_duplicates(['基金代码'], inplace=True)
         total_table = total_table[(total_table['净值日期'] != 0) & (total_table['成立日期'] != 0)]
         total_table = total_table[total_table['成立日期'] >= ref_date]
         return total_table[['基金代码', '基金简称', '基金管理人', '基金经理', '成立日期', '好买策略', '复权单位净值', '净值日期']]

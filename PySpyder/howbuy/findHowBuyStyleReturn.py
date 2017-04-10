@@ -47,6 +47,7 @@ def load_howbuy_style_return(start_month=200001, end_month=202101):
 
     if datas:
         total_table = pd.concat(datas)
+        total_table.drop_duplicates(['统计月份', '好买策略'], inplace=True)
         return total_table.reset_index(drop=True)
     else:
         return pd.DataFrame()

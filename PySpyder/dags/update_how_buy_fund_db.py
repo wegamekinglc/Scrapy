@@ -28,7 +28,7 @@ default_args = {
 dag = DAG(
     dag_id=dag_name,
     default_args=default_args,
-    schedule_interval='30 9 * * *')
+    schedule_interval='30 9 1 * *')
 
 
 def update_fund_index(ds, **kwargs):
@@ -61,16 +61,11 @@ run_this2 = PythonOperator(
     python_callable=update_fund_type,
     dag=dag)
 
-run_this2.set_upstream(run_this1)
-
-
 run_this3 = PythonOperator(
     task_id='update_fund_style_return',
     provide_context=True,
     python_callable=update_fund_style_ret,
     dag=dag)
-
-run_this3.set_upstream(run_this2)
 
 
 if __name__ == '__main__':
