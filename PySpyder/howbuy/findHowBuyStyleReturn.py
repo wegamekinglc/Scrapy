@@ -69,7 +69,7 @@ def find_latest_date():
     sql = 'select tradingDate, howbuyStrategy from HOWBUY_STYLE_RET'
     exist_data = pd.read_sql(sql, engine).sort_values('tradingDate')
     if len(exist_data) > 0:
-        return exist_data.iloc[-1]['tradingDate']
+        return exist_data.iloc[len(exist_date) - 1]['tradingDate']
     else:
         return pd.Timestamp('1990-01-01')
 

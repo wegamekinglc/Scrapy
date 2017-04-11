@@ -21,7 +21,7 @@ def find_latest_date():
     sql = 'select DISTINCT(setupDate) from HOWBUY_FUND_TYPE'
     data = pd.read_sql(sql, engine).sort_values('setupDate')
     if len(data) > 0:
-        return data.iloc[-1]['setupDate']
+        return data.iloc[len(data)- 1]['setupDate']
     else:
         return dt.datetime(1900, 1, 1)
 

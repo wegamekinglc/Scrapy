@@ -53,7 +53,7 @@ def find_latest_date():
     sql = 'select publicationDate from HOWBUY_FUND_HOLDING'
     exist_data = pd.read_sql(sql, engine).sort_values('publicationDate')
     if len(exist_data) > 0:
-        return exist_data.iloc[-1]['publicationDate']
+        return exist_data.iloc[len(exist_data) - 1]['publicationDate']
     else:
         return pd.Timestamp('2014-01-01')
 
