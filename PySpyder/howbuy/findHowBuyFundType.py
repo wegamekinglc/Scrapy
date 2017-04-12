@@ -51,7 +51,7 @@ def load_howbuy_fund_type(ref_date):
 
         fund_data = parse_table(target_table)
         fund_data = fund_data[fund_data['成立日期'] != 0]
-        if fund_data.iloc[-1]['成立日期'] < ref_date:
+        if len(fund_data) == 0 or fund_data.iloc[len(fund_data) - 1]['成立日期'] < ref_date:
             break
 
         full_table.append(fund_data)
