@@ -9,7 +9,11 @@ import requests
 import sqlalchemy
 import pandas as pd
 
-DB_SETTINGS = {'host': 'localhost', 'user': 'hf_admin', 'pwd': 'we083826', 'db': 'hedge_fund', 'charset': 'utf8'}
+DB_SETTINGS = {'host': 'hostname',
+               'user': 'username',
+               'pwd': 'yourpassword',
+               'db': 'dbname',
+               'charset': 'utf8'}
 
 
 def create_engine():

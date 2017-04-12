@@ -111,3 +111,5 @@ $ airflow worker
 ```
 $ airflow flower
 ```
+
+至此为止整个``airflow``运行环境启动成功！
