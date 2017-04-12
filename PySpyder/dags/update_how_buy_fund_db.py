@@ -10,7 +10,7 @@ import datetime as dt
 from airflow.operators.python_operator import PythonOperator
 from airflow.models import DAG
 
-sys.path.append('/home/wegamekinglc/Documents/dev/coding/Scrapy')
+sys.path.append('/path/toyour/scrapy/root')
 
 from PySpyder.howbuy.findHowBuyFundIndex import fund_index_spyder
 from PySpyder.howbuy.findHowBuyFundType import fund_type_spyder
