@@ -1,5 +1,9 @@
 # Installation
 
+## 运行环境
+
+只支持``Linux``，推荐使用``ubuntu 16.04``。``python``版本只测试过``python3``。
+
 ## 准备
 
 下面的依赖，需要在安装airflow之前完成：
