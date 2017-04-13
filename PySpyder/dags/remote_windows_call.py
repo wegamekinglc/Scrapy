@@ -25,5 +25,6 @@ dag = DAG(
     default_args=default_args,
     schedule_interval='*/5 * * * *')
 
-task = BashOperator(bash_command='ssh username@hostname "./remote_windows_test.bat"',
+task = BashOperator(task_id='simple_bash',
+                    bash_command='ssh username@hostname "./remote_windows_test.bat"',
                     dag=dag)
