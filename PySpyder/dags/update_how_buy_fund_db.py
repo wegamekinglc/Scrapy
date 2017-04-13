@@ -79,7 +79,3 @@ run_this4 = PythonOperator(
     provide_context=True,
     python_callable=update_fund_holding,
     dag=dag)
-
-
-if __name__ == '__main__':
-    update_fund_index()

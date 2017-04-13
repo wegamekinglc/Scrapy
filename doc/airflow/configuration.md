@@ -66,7 +66,7 @@ executor = CeleryExecutor
 * 设置后台数据库
 
 ```
-sql_alchemy_conn = mysql+pymysql://ariflow_admin:yourpassword@localhost:3306/airflow
+sql_alchemy_conn = mysql+pymysql://airflow_admin:yourpassword@localhost:3306/airflow
 ```
 
 这里具体的参数请与你设置的``airflow``数据一致。
@@ -97,7 +97,7 @@ $ airflow webserver -p 8080
 ### 启动``shceduler``
 
 ```
-$ aiflow scheduler
+$ airflow scheduler
 ```
 
 ### 启动``worker``

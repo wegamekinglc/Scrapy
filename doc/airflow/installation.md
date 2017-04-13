@@ -16,6 +16,7 @@ flower
 rabbitmq
 mysql-server
 mysql-client
+libmysqlclient-dev
 ```
 
 其中：
