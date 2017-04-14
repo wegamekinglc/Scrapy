@@ -4,7 +4,7 @@
 
 ## 项目目录
 
-在根目录下：``PySpyder/howbuy``，相关的``dag``文件为：``pyspyder/dags/update_how_buy_fund_db.py``
+在根目录下：``PySpyder/howbuy``，相关的``dag``文件为：``pyspyder/dags/examples/update_how_buy_fund_db.py``
 
 ## 初始化数据库
 

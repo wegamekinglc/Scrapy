@@ -1,6 +1,10 @@
 # sample dags
 
 * [介绍](introduction.md)
-* [定时抓权好买基金数据](example_howbuy.md)
-* [远程运行``windows``脚本](example_remote_windows.md)
-* [远程运行``matlab``脚本](example_remote_matlab.md)
+* [例子](examples/README.md)
+    * [定时抓权好买基金数据](examples/example_howbuy.md)
+    * [远程运行``windows``脚本](examples/example_remote_windows.md)
+    * [远程运行``matlab``脚本](examples/example_remote_matlab.md)
+* [工作项目](workitems/README.md)
+    * [项目目录](workitems/list.md)
+    * [数据校验](workitems/daily_data_checker.md)

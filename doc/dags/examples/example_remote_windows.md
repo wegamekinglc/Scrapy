@@ -6,7 +6,7 @@
 
 ## 文件
 
-该例子相关的文件在``PySpyder/dags``文件目录下：
+该例子相关的文件在``PySpyder/dags/examples``文件目录下：
 
 ```
 remote_windows_call.bat
