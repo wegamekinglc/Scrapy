@@ -2,7 +2,7 @@
 
 ## 文件
 
-所需的dag文件在``PySpyder/dags/workitems.daily_data_checker``目录下，所用的检查脚本在svn:
+所需的dag文件在``PySpyder/dags/workitems/daily_data_checker``目录下，所用的检查脚本在svn:
 
 ```
 https://10.63.6.72/svn/lic/DataCheck/branches/new_checker/DataChecker/branches/new_checker
