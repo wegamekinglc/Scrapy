@@ -13,3 +13,4 @@
     * [工作项目](dags/workitems/README.md)
         * [项目目录](dags/workitems/list.md)
         * [数据校验](dags/workitems/daily_data_checker.md)
+        * [市场数据更新](dags/workitems/update_market_data.md)
