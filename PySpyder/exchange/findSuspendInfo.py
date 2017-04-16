@@ -14,6 +14,7 @@ import PySpyder.exchange.xshg as xshg
 from PySpyder.utilities import insert_table
 from PySpyder.utilities import exchange_db_settings
 from PySpyder.utilities import create_engine
+from PySpyder.utilities import spyder_logger
 
 
 def find_latest_date():
@@ -46,8 +47,10 @@ def exchange_suspend_info(ref_date, force_update=False):
     for date in date_range:
         if isBizDay('china.sse', date):
             datas.append(suspend_info(date.strftime('%Y-%m-%d')))
+            spyder_logger.info('Scraping finished for date {0}'.format(date))
 
     total_table = pd.concat(datas)
+    total_table.drop_duplicates(['停(复)牌时间', '证券代码'], inplace=True)
 
     if not total_table.empty:
         insert_table(total_table,
