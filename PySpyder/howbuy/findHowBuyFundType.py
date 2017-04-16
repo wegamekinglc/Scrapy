@@ -9,15 +9,16 @@ import datetime as dt
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from PySpyder.howbuy.utilities import create_engine
-from PySpyder.howbuy.utilities import insert_table
+from PySpyder.utilities import create_engine
+from PySpyder.utilities import insert_table
 from PySpyder.howbuy.utilities import login
 from PySpyder.howbuy.utilities import parse_table
 from PySpyder.utilities import spyder_logger
+from PySpyder.utilities import hedge_fund_db_settings
 
 
 def find_latest_date():
-    engine = create_engine()
+    engine = create_engine(hedge_fund_db_settings)
     sql = 'select DISTINCT(setupDate) from HOWBUY_FUND_TYPE'
     data = pd.read_sql(sql, engine).sort_values('setupDate')
     if len(data) > 0:
@@ -81,7 +82,8 @@ def fund_type_spyder(ref_date, force_update=False):
                      ['howbuyCODE', 'fundName', 'fundManagementComp', 'manager', 'setupDate', 'howbuyStrategy',
                       'adjPrice',
                       'priceDate'],
-                     'HOWBUY_FUND_TYPE')
+                     'HOWBUY_FUND_TYPE',
+                     hedge_fund_db_settings)
 
 
 if __name__ == "__main__":

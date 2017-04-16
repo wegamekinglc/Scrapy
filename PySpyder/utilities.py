@@ -5,6 +5,7 @@ Created on 2016-11-25
 """
 
 import logging
+import sqlalchemy
 
 
 class CustomLogger(object):
@@ -40,4 +41,32 @@ class CustomLogger(object):
     def debug(self, msg):
         self.logger.debug(msg)
 
+
 spyder_logger = CustomLogger('PY_SPYDER_LOGGER', 'info')
+
+hedge_fund_db_settings = {'host': 'localhost',
+                          'user': 'sa',
+                          'pwd': 'we083826',
+                          'db': 'hedge_fund',
+                          'charset': 'utf8'}
+
+exchange_db_settings = {'host': 'localhost',
+                        'user': 'sa',
+                        'pwd': 'we083826',
+                        'db': 'exchange',
+                        'charset': 'utf8'}
+
+
+def create_engine(db_settings):
+    return sqlalchemy.create_engine("mysql+pymysql://{user}:{passwd}@{host}/{db}?charset={charset}"
+                                    .format(host=db_settings['host'],
+                                            user=db_settings['user'],
+                                            passwd=db_settings['pwd'],
+                                            db=db_settings['db'],
+                                            charset=db_settings['charset']))
+
+
+def insert_table(data, field_names, table_name, db_settings):
+    engine = create_engine(db_settings)
+    data.columns = field_names
+    data.to_sql(table_name, engine, if_exists='append', index=False)

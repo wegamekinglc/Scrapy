@@ -6,30 +6,7 @@ Created on 2016-2-26
 """
 
 import requests
-import sqlalchemy
 import pandas as pd
-
-DB_SETTINGS = {'host': 'hostname',
-               'user': 'username',
-               'pwd': 'yourpassword',
-               'db': 'dbname',
-               'charset': 'utf8'}
-
-
-def create_engine():
-    global DB_SETTINGS
-    return sqlalchemy.create_engine("mysql+pymysql://{user}:{passwd}@{host}/{db}?charset={charset}"
-                                    .format(host=DB_SETTINGS['host'],
-                                            user=DB_SETTINGS['user'],
-                                            passwd=DB_SETTINGS['pwd'],
-                                            db=DB_SETTINGS['db'],
-                                            charset=DB_SETTINGS['charset']))
-
-
-def insert_table(data, field_names, table_name):
-    engine = create_engine()
-    data.columns = field_names
-    data.to_sql(table_name, engine, if_exists='append', index=False)
 
 
 def try_parse_percentage(x):

@@ -10,11 +10,12 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 from PyFin.DateUtilities import Date
-from PySpyder.howbuy.utilities import create_engine
-from PySpyder.howbuy.utilities import insert_table
+from PySpyder.utilities import create_engine
+from PySpyder.utilities import insert_table
 from PySpyder.howbuy.utilities import login
 from PySpyder.howbuy.utilities import parse_table
 from PySpyder.utilities import spyder_logger
+from PySpyder.utilities import hedge_fund_db_settings
 
 
 month_ends = ['03-31', '06-30', '09-30', '12-31']
@@ -49,7 +50,7 @@ def date_stamps(start_date, end_date):
 
 
 def find_latest_date():
-    engine = create_engine()
+    engine = create_engine(hedge_fund_db_settings)
     sql = 'select publicationDate from HOWBUY_FUND_HOLDING'
     exist_data = pd.read_sql(sql, engine).sort_values('publicationDate')
     if len(exist_data) > 0:
@@ -113,7 +114,8 @@ def fund_holding_spyder(ref_date, force_update=False):
                      ['howbuyCODE', 'fundName', 'publicationDate', 'holdingAmount', 'holdingPercentage', 'changeAmount',
                       'instrumentID',
                       'instrumentName'],
-                     'HOWBUY_FUND_HOLDING')
+                     'HOWBUY_FUND_HOLDING',
+                     hedge_fund_db_settings)
 
 
 if __name__ == '__main__':

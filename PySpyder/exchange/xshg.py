@@ -48,7 +48,8 @@ def suspend(query_date):
 
                 reasons.append(row['stopReason'])
 
-    df = pd.DataFrame({'证券代码': codes,
+    df = pd.DataFrame({'停(复)牌时间': query_date,
+                       '证券代码': codes,
                        '证券简称': names,
                        '状态': status,
                        '原因': reasons})
@@ -57,5 +58,5 @@ def suspend(query_date):
 
 if __name__ == '__main__':
     # sse
-    df = suspend('2016-10-11')
+    df = suspend('2017-04-17')
     print(df)

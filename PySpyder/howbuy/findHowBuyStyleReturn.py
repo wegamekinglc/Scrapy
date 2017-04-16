@@ -9,11 +9,12 @@ import datetime as dt
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from PySpyder.howbuy.utilities import create_engine
-from PySpyder.howbuy.utilities import insert_table
+from PySpyder.utilities import create_engine
+from PySpyder.utilities import insert_table
 from PySpyder.howbuy.utilities import login
 from PySpyder.howbuy.utilities import parse_table
 from PySpyder.utilities import spyder_logger
+from PySpyder.utilities import hedge_fund_db_settings
 
 
 def load_howbuy_style_return(start_month=200001, end_month=202101):
@@ -65,7 +66,7 @@ def format_table(table):
 
 
 def find_latest_date():
-    engine = create_engine()
+    engine = create_engine(hedge_fund_db_settings)
     sql = 'select tradingDate, howbuyStrategy from HOWBUY_STYLE_RET'
     exist_data = pd.read_sql(sql, engine).sort_values('tradingDate')
     if len(exist_data) > 0:
@@ -87,7 +88,8 @@ def fund_style_return_spyder(ref_date, force_update=False):
         total_table = format_table(total_table)
         insert_table(total_table,
                      ['tradingDate', 'howbuyStrategy', 'max_ret', 'min_ret', 'median_ret', 'mean_ret'],
-                     'HOWBUY_STYLE_RET')
+                     'HOWBUY_STYLE_RET',
+                     hedge_fund_db_settings)
 
 
 if __name__ == "__main__":
