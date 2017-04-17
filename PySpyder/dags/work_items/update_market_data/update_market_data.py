@@ -22,7 +22,7 @@ default_args = {
 dag = DAG(
     dag_id=dag_name,
     default_args=default_args,
-    schedule_interval='0 16 * * *')
+    schedule_interval='0 16 * * 1,2,3,4,5')
 
 task = BashOperator(task_id='update_index_and_fund',
                     bash_command='ssh yourusername@hostname "./update_index_and_fund.bat {{ ds }}"',
