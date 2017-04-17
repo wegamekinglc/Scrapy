@@ -36,4 +36,10 @@ task2 = BashOperator(task_id='update_future',
                      bash_command=bash_command,
                      dag=dag)
 
+bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_equity.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
+
+task3 = BashOperator(task_id='update_equity',
+                     bash_command=bash_command,
+                     dag=dag)
+
 
