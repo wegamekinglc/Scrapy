@@ -29,7 +29,7 @@ default_args = {
 dag = DAG(
     dag_id=dag_name,
     default_args=default_args,
-    schedule_interval='30 9 * * *')
+    schedule_interval='30 9 * * 1,2,3,4,5')
 
 
 def update_fund_index(ds, **kwargs):
