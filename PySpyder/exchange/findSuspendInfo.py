@@ -49,6 +49,10 @@ def exchange_suspend_info(ref_date, force_update=False):
             datas.append(suspend_info(date.strftime('%Y-%m-%d')))
             spyder_logger.info('Scraping finished for date {0}'.format(date))
 
+    if not datas:
+        spyder_logger.info('No data is availabel until {0}'.format(ref_date))
+        return
+        
     total_table = pd.concat(datas)
     total_table.drop_duplicates(['停(复)牌时间', '证券代码'], inplace=True)
 
