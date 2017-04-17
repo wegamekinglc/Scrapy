@@ -24,8 +24,6 @@ dag = DAG(
     default_args=default_args,
     schedule_interval='0 17 * * 1,2,3,4,5')
 
-next_execution_date = '{{ next_execution_date }}'
-
 bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_index_and_fund.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
 
 task1 = BashOperator(task_id='update_index_and_fund',

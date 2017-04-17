@@ -18,14 +18,14 @@
 
 ## 配置dags
 
-* 修改``PySpyder/howbuy/utilities.py``中，关于``mysql``的设置行：
+* 修改``PySpyder/utilities.py``中，关于``mysql``的设置行：
 
 ```python
-DB_SETTINGS = {'host': 'hostname',
-               'user': 'username',
-               'pwd': 'yourpassword',
-               'db': 'dbname',
-               'charset': 'utf8'}
+hedge_fund_db_settings = {'host': 'hostname',
+                          'user': 'username',
+                          'pwd': 'yourpassword',
+                          'db': 'dbname',
+                          'charset': 'utf8'}
 ```
 
 * 拷贝``update_how_buy_fund_db.py``至``AIRFLOW_HOME/dags``文件夹下；
