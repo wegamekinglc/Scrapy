@@ -28,6 +28,14 @@ next_execution_date = '{{ next_execution_date }}'
 
 bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_index_and_fund.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
 
-task = BashOperator(task_id='update_index_and_fund',
-                    bash_command=bash_command,
-                    dag=dag)
+task1 = BashOperator(task_id='update_index_and_fund',
+                     bash_command=bash_command,
+                     dag=dag)
+
+bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_future.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
+
+task2 = BashOperator(task_id='update_future',
+                     bash_command=bash_command,
+                     dag=dag)
+
+
