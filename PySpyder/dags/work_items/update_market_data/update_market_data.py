@@ -26,7 +26,7 @@ dag = DAG(
 
 next_execution_date = '{{ next_execution_date }}'
 
-bash_command = 'ssh yourusername@hostname "./update_index_and_fund.bat {0}"'.format(next_execution_date.strftime('%y-%-%d'))
+bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_index_and_fund.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
 
 task = BashOperator(task_id='update_index_and_fund',
                     bash_command=bash_command,
