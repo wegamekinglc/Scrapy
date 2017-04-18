@@ -9,7 +9,7 @@ import datetime as dt
 from airflow.models import DAG
 from airflow.operators.bash_operator import BashOperator
 
-start_date = dt.datetime(2017, 4, 1)
+start_date = dt.datetime(2017, 1, 1)
 dag_name = 'update_market_data'
 
 default_args = {
@@ -36,10 +36,10 @@ task2 = BashOperator(task_id='update_future',
                      bash_command=bash_command,
                      dag=dag)
 
+task2.set_upstream(task1)
+
 bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_equity.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
 
 task3 = BashOperator(task_id='update_equity',
                      bash_command=bash_command,
                      dag=dag)
-
-
