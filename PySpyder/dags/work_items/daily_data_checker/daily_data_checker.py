@@ -17,5 +17,5 @@ dag = DAG(dag_id='daily_data_checke',
 
 
 task1 = BashOperator(task_id='run_check',
-                     bash_command='python path/to/datachecker/CheckerController.py',
+                     bash_command='python path/to/datachecker/CheckerController.py {{ next_execution_date.strftime(\'%Y-%m-%d\') }}',
                      dag=dag)
