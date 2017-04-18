@@ -24,13 +24,27 @@ dag = DAG(
     default_args=default_args,
     schedule_interval='0 17 * * 1,2,3,4,5')
 
-bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_index_and_fund.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
+
+bash_command = """
+result=`ssh wegamekinglc@10.63.6.149 "./update_index_and_fund.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"`
+echo $result
+[[ $result =~ "is not a trading day" ]] && exit 0
+[[ $result =~ "finished inserting" ]] && exit 0
+exit -1
+"""
+
 
 task1 = BashOperator(task_id='update_index_and_fund',
                      bash_command=bash_command,
                      dag=dag)
 
-bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_future.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
+bash_command = """
+result=`ssh wegamekinglc@10.63.6.149 "./update_future.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"`
+echo $result
+[[ $result =~ "is not a trading day" ]] && exit 0
+[[ $result =~ "finished inserting" ]] && exit 0
+exit -1
+"""
 
 task2 = BashOperator(task_id='update_future',
                      bash_command=bash_command,
@@ -38,7 +52,13 @@ task2 = BashOperator(task_id='update_future',
 
 task2.set_upstream(task1)
 
-bash_command = 'ssh wegamekinglc@10.63.6.149 "./update_equity.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"'
+bash_command = """
+result=`ssh wegamekinglc@10.63.6.149 "./update_equity.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"`
+echo $result
+[[ $result =~ "is not a trading day" ]] && exit 0
+[[ $result =~ "finished inserting" ]] && exit 0
+exit -1
+"""
 
 task3 = BashOperator(task_id='update_equity',
                      bash_command=bash_command,
