@@ -4,10 +4,4 @@ set PATH=C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS C
 
 python D:\dev\svn\datacenter\trunk\daily_index_and_fund.py %1
 
-if %ERRORLEVEL% == 0 (
-    exit /b 0
-) else (
-    exit /b -1
-)
-
 @ECHO on
