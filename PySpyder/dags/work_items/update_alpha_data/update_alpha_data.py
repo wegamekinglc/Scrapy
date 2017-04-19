@@ -26,7 +26,7 @@ dag = DAG(
 
 
 bash_command = """
-result=`ssh wegamekinglc@10.63.6.149 "./update_non_alpha_data.bat {{ next_execution_date.strftime(\'%Y-%m-%d\') }}"`
+result=`ssh wegamekinglc@10.63.6.149 "./update_non_alpha_data.bat {{ next_execution_date.strftime(\'%Y%m%d\') }}"`
 echo $result
 [[ $result =~ "Non alpha data updating is finished" ]] && exit 0
 exit -1
