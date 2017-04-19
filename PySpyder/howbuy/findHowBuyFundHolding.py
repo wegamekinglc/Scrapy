@@ -81,14 +81,16 @@ def load_fund_holding(start_date, end_date):
             soup = BeautifulSoup(info_data.text, 'lxml')
 
             tables = soup.find_all('table')
-            target_table = tables[1]
+            if tables:
+                target_table = tables[1]
 
-            if soup == previous_page or target_table.tbody.td.text == '未查询到相关数据！':
-                break
+                if soup == previous_page or target_table.tbody.td.text == '未查询到相关数据！':
+                    break
 
-            fund_data = parse_table(target_table)
-            datas.append(fund_data)
+                fund_data = parse_table(target_table)
+                datas.append(fund_data)
             previous_page = soup
+            spyder_logger.info("Page No. {0:4d} is finished.".format(page))
 
         spyder_logger.info('Publication Date : {0} is finished for fund holding'.format(end_date))
 
@@ -119,4 +121,4 @@ def fund_holding_spyder(ref_date, force_update=False):
 
 
 if __name__ == '__main__':
-    fund_holding_spyder(dt.datetime.now())
+    fund_holding_spyder(dt.datetime(2017, 4, 17))
