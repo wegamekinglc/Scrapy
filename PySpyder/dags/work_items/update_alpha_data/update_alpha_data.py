@@ -26,12 +26,26 @@ dag = DAG(
 
 
 bash_command = """
+result=`ssh wegamekinglc@10.63.6.149 "./update_multi_factor_db.bat {{ next_execution_date.strftime(\'%Y%m%d\') }}"`
+echo $result
+[[ $result =~ "Multi factor db updating is finished" ]] && exit 0
+exit -1
+"""
+
+task1 = BashOperator(task_id='update_multi_factor_db',
+                     bash_command=bash_command,
+                     dag=dag)
+
+
+bash_command = """
 result=`ssh wegamekinglc@10.63.6.149 "./update_non_alpha_data.bat {{ next_execution_date.strftime(\'%Y%m%d\') }}"`
 echo $result
 [[ $result =~ "Non alpha data updating is finished" ]] && exit 0
 exit -1
 """
 
-task1 = BashOperator(task_id='update_non_alpha_data',
+task2 = BashOperator(task_id='update_non_alpha_data',
                      bash_command=bash_command,
                      dag=dag)
+
+task2.set_upstream(task1)
