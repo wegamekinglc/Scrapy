@@ -12,7 +12,7 @@ function update_multi_factor_db(refDate)
     try
         updateMultiFactorDB(refDate);
     catch exception
-        disp(exception);
+        disp(getReport(exception));
         diary off
         cd(current_folder);
         exit;
