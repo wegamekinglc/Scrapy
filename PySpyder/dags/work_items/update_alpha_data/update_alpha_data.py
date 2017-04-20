@@ -61,3 +61,16 @@ task3 = BashOperator(task_id='update_non_alpha_data_500',
                      dag=dag)
 
 task3.set_upstream(task2)
+
+bash_command = """
+result=`ssh wegamekinglc@10.63.6.149 "./update_alpha_500.bat {{ next_execution_date.strftime(\'%Y%m%d\') }}"`
+echo $result
+[[ $result =~ "alpha data updating is finished" ]] && exit 0
+exit -1
+"""
+
+task4 = BashOperator(task_id='update_alpha_500',
+                     bash_command=bash_command,
+                     dag=dag)
+
+task4.set_upstream(task3)
