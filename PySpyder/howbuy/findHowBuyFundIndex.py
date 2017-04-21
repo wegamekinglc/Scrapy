@@ -47,9 +47,9 @@ def load_fund_index(start_month=200601, end_month=202201):
             info_data = session.post(query_url)
             soup = BeautifulSoup(info_data.text, 'lxml')
 
-            error_message = soup.find('div', attrs={'class': 'iocn'}).text
-            if error_message.startswith('对不起，系统繁忙，请稍后再试'):
-                raise ValueError(error_message)
+            error_message = soup.find('div', attrs={'class': 'iocn'})
+            if error_message:
+                raise ValueError(error_message.text)
 
             tables = soup.find_all('table')
             target_table = tables[1]

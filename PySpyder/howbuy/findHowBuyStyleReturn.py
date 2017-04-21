@@ -32,9 +32,9 @@ def load_howbuy_style_return(start_month=200001, end_month=202101):
         info_data = session.post(query_url)
         soup = BeautifulSoup(info_data.text, 'lxml')
 
-        error_message = soup.find('div', attrs={'class': 'iocn'}).text
-        if error_message.startswith('对不起，系统繁忙，请稍后再试'):
-            raise ValueError(error_message)
+        error_message = soup.find('div', attrs={'class': 'iocn'})
+        if error_message:
+            raise ValueError(error_message.text)
 
         tables = soup.find_all('table')
         target_table = tables[1]
