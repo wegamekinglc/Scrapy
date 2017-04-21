@@ -53,14 +53,17 @@ def suspend(query_date):
                     if cells:
                         codes.append(cells[0].text)
                         names.append(cells[1].text)
-                        if cells[4].text == '取消停牌':
+
+                        info_message = cells[4].text.strip()
+
+                        if info_message.find('取消停牌') != -1:
                             status.append('复牌')
                             stop_times.append('')
                         else:
                             status.append('停牌')
-                            stop_times.append(cells[4].text)
+                            stop_times.append(info_message)
 
-                        reasons.append(cells[5].text)
+                        reasons.append(cells[5].text.strip())
             else:
                 break
             page += 1
@@ -79,5 +82,5 @@ def suspend(query_date):
 
 
 if __name__ == '__main__':
-    df = suspend('2017-04-21')
+    df = suspend('2015-04-10')
     print(df)

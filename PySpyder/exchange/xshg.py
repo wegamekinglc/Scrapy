@@ -50,7 +50,7 @@ def suspend(query_date):
                 else:
                     status.append('停牌')
                 stop_times.append(row['stopTime'])
-                reasons.append(row['stopReason'])
+                reasons.append(row['stopReason'].strip())
 
     df = pd.DataFrame({'停(复)牌时间': query_date,
                        '证券代码': codes,
