@@ -28,6 +28,8 @@ def exchange_announcement_info(ref_date):
     if isBizDay('china.sse', ref_date):
         total_table = announcement_info(ref_date.strftime('%Y-%m-%d'))
         spyder_logger.info('Scraping finished for date {0}'.format(ref_date))
+    else:
+        spyder_logger.info('{0} is not a valid bussiness day'.format(ref_date))
 
     if total_table.empty:
         spyder_logger.info('No new data is availabel until {0}'.format(ref_date))
