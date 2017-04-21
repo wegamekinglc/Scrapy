@@ -31,7 +31,7 @@ def suspend_info(query_date):
     xshe_info = xshe.suspend(query_date)
     xshg_info = xshg.suspend(query_date)
 
-    return pd.concat([xshe_info, xshg_info]).reset_index(drop=True)[['停(复)牌时间', '证券代码', '证券简称', '状态', '原因']]
+    return pd.concat([xshe_info, xshg_info]).reset_index(drop=True)[['停(复)牌时间', '证券代码', '证券简称', '状态', '原因', '期限']]
 
 
 def exchange_suspend_info(ref_date, force_update=False):
@@ -62,7 +62,8 @@ def exchange_suspend_info(ref_date, force_update=False):
                       'instrumentID',
                       'instrumentName',
                       'status',
-                      'reason'],
+                      'reason',
+                      'stopTime'],
                      'suspend_info',
                      exchange_db_settings)
 
