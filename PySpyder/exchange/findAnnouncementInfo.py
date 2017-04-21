@@ -17,10 +17,15 @@ from PySpyder.utilities import spyder_logger
 
 
 def announcement_info(query_date):
-    xshe_info = pd.DataFrame()
+    xshe_info = xshe.announcement(query_date)
     xshg_info = xshg.announcement(query_date)
 
-    return pd.concat([xshe_info, xshg_info]).reset_index(drop=True)[['报告日期', '证券代码', '标题', 'url']]
+    return pd.concat([xshe_info, xshg_info]).reset_index(drop=True)[['报告日期',
+                                                                     '证券代码',
+                                                                     '标题',
+                                                                     'url',
+                                                                     'updateTime',
+                                                                     'exchangePlace']]
 
 
 def exchange_announcement_info(ref_date):
@@ -43,10 +48,13 @@ def exchange_announcement_info(ref_date):
                      ['reportDate',
                       'instrumentID',
                       'title',
-                      'url'],
+                      'url',
+                      'updateTime',
+                      'exchangePlace'],
                      'announcement_info',
                      exchange_db_settings)
 
 
 if __name__ == "__main__":
-    exchange_announcement_info(dt.datetime(2015, 4, 2))
+    data = exchange_announcement_info(dt.datetime(2015, 4, 2))
+    print(data)

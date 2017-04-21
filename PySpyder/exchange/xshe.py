@@ -5,9 +5,14 @@ Created on 2016-10-25
 @author: cheng.li
 """
 
+
+import datetime as dt
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from PyFin.api import advanceDateByCalendar
+from PySpyder.utilities import exchange_db_settings
+from PySpyder.utilities import create_engine
 from PySpyder.utilities import spyder_logger
 
 
@@ -81,6 +86,80 @@ def suspend(query_date):
     return df
 
 
+def find_existing(query_date, end_date):
+    engine = create_engine(exchange_db_settings)
+    sql = "select url from announcement_info where reportDate>='{0}' and reportDate <= '{1}' and exchangePlace = 'xshe'".format(query_date, end_date)
+    exist_data = pd.read_sql(sql, engine)
+    return exist_data
+
+
+def announcement(query_date):
+
+    with requests.Session() as session:
+        session.headers['Referer'] = 'http://www.sse.com.cn/disclosure/listedinfo/announcement/'
+
+        query_url = 'http://disclosure.szse.cn/m/search0425.jsp'
+
+        page = 1
+        previous_page = None
+
+        datas = []
+
+        end_date = advanceDateByCalendar('china.sse', query_date, '1b').strftime('%Y-%m-%d')
+        exist_data = find_existing(query_date, end_date)
+
+        while True:
+
+            codes = []
+            titles = []
+            urls = []
+            report_dates = []
+
+            info_data = session.post(query_url, data={'startTime': query_date,
+                                                      'endTime': end_date,
+                                                      'pageNo': page})
+
+            info_data.encoding = 'gbk'
+            soup = BeautifulSoup(info_data.text, 'lxml')
+
+            if soup == previous_page:
+                break
+
+            rows = soup.find_all('td', attrs={'class': 'td2'})
+
+            for row in rows:
+                codes.append(0)
+                titles.append(row.a.text)
+                urls.append('http://disclosure.szse.cn/' + row.a['href'])
+                report_dates.append(row.span.text[1:-1])
+
+            previous_page = soup
+            page += 1
+
+            df = pd.DataFrame({'报告日期': report_dates,
+                               '证券代码': codes,
+                               '标题': titles,
+                               'url': urls,
+                               'updateTime': dt.datetime.now(),
+                               'exchangePlace': 'xshe'})
+
+            new_records = set(df.url).difference(set(exist_data.url))
+            original_length = len(df)
+            df = df[df.url.isin(new_records)]
+            datas.append(df)
+
+            if len(df) != original_length:
+                break
+
+    df = pd.concat(datas)
+    df.drop_duplicates(['url'], inplace=True)
+
+    if df.empty:
+        spyder_logger.warning('No data found for the date {0}'.format(query_date))
+
+    return df
+
+
 if __name__ == '__main__':
-    df = suspend('2015-04-10')
+    df = announcement('2017-04-22')
     print(df)

@@ -5,6 +5,7 @@ Created on 2016-10-25
 @author: cheng.li
 """
 
+import datetime as dt
 import json
 import requests
 from bs4 import BeautifulSoup
@@ -67,7 +68,7 @@ def suspend(query_date):
 
 def find_existing(query_date):
     engine = create_engine(exchange_db_settings)
-    sql = "select url from announcement_info where reportDate='{0}'".format(query_date)
+    sql = "select url from announcement_info where reportDate='{0}' and exchangePlace = 'xshg'".format(query_date)
     exist_data = pd.read_sql(sql, engine)
     return exist_data
 
@@ -100,13 +101,15 @@ def announcement(query_date):
 
         codes = [row['security_Code'] for row in json_data]
         titles = [row['title'] for row in json_data]
-        urls = [row['URL'] for row in json_data]
+        urls = ['http://www.sse.com.cn' + row['URL'] for row in json_data]
         report_dates = [row['SSEDate'] for row in json_data]
 
     df = pd.DataFrame({'报告日期': report_dates,
                        '证券代码': codes,
                        '标题': titles,
-                       'url': urls})
+                       'url': urls,
+                       'updateTime': dt.datetime.now(),
+                       'exchangePlace': 'xshg'})
 
     if df.empty:
         spyder_logger.warning('No data found for the date {0}'.format(query_date))
