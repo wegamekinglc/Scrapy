@@ -81,10 +81,14 @@ def load_fund_holding(start_date, end_date):
             soup = BeautifulSoup(info_data.text, 'lxml')
 
             tables = soup.find_all('table')
+
+            if soup == previous_page:
+                break
+
             if tables:
                 target_table = tables[1]
 
-                if soup == previous_page or target_table.tbody.td.text == '未查询到相关数据！':
+                if target_table.tbody.td.text == '未查询到相关数据！':
                     break
 
                 fund_data = parse_table(target_table)
@@ -99,6 +103,7 @@ def load_fund_holding(start_date, end_date):
         total_table.drop_duplicates(['基金代码', '基金简称', '股票代码'], inplace=True)
         return total_table[['基金代码', '基金简称', '截止日期', '持股数量(万股)', '持股比例(%)', '变动数量(万股)', '股票代码', '股票简称']]
     else:
+        spyder_logger.warning("No any data got between {0} and {1}".format(start_date, end_date))
         return pd.DataFrame()
 
 
