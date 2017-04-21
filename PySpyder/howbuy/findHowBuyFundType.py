@@ -43,6 +43,10 @@ def load_howbuy_fund_type(ref_date):
         info_data = session.post(query_url)
         soup = BeautifulSoup(info_data.text, 'lxml')
 
+        error_message = soup.find('div', attrs={'class': 'iocn'}).text
+        if error_message.startswith('对不起，系统繁忙，请稍后再试'):
+            raise ValueError(error_message)
+
         if soup == previous_page:
             break
 

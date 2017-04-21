@@ -32,6 +32,10 @@ def load_howbuy_style_return(start_month=200001, end_month=202101):
         info_data = session.post(query_url)
         soup = BeautifulSoup(info_data.text, 'lxml')
 
+        error_message = soup.find('div', attrs={'class': 'iocn'}).text
+        if error_message.startswith('对不起，系统繁忙，请稍后再试'):
+            raise ValueError(error_message)
+
         tables = soup.find_all('table')
         target_table = tables[1]
 
@@ -49,7 +53,7 @@ def load_howbuy_style_return(start_month=200001, end_month=202101):
     if datas:
         total_table = pd.concat(datas)
         total_table.drop_duplicates(['统计月份', '好买策略'], inplace=True)
-        return total_table.reset_index(drop=True)
+        return total_table
     else:
         return pd.DataFrame()
 
@@ -80,7 +84,8 @@ def fund_style_return_spyder(ref_date, force_update=False):
 
     if not force_update:
         latest_date = find_latest_date()
-        latest_next_month = int(latest_date.strftime('%Y%m')) + 1
+        next_month_start = latest_date + dt.timedelta(days=31)
+        latest_next_month = int(next_month_start.strftime('%Y%m'))
         start_month = latest_next_month
 
     total_table = load_howbuy_style_return(start_month)

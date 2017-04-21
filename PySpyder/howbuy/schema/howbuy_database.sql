@@ -20,9 +20,7 @@ create table HOWBUY_FUND_INDEX
 	indexLevel double not null,
 	indexLevelChg double not null,
 	adjustedHS300 double not null,
-	primary key (tradingDate, howbuyCode),
-	constraint HOWBUY_FUND_INDEX_tradingDate_howbuyCode_uindex
-		unique (tradingDate, howbuyCode)
+	primary key (tradingDate, howbuyCode)
 );
 
 
@@ -51,7 +49,5 @@ create table HOWBUY_STYLE_RET
 	min_ret double not null,
 	median_ret double not null,
 	mean_ret double not null,
-	primary key (tradingDate, howbuyStrategy(6)),
-	constraint HOWBUY_STYLE_RET_tradingDate_howbuyStrategy_uindex
-		unique (tradingDate, howbuyStrategy(6))
+	primary key (tradingDate, howbuyStrategy(10))
 );
