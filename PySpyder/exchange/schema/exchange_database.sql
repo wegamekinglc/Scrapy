@@ -11,3 +11,13 @@ create table suspend_info
 		unique (effectiveDate, instrumentID)
 );
 
+
+create table exchange.announcement_info
+(
+	reportDate datetime not null,
+	instrumentID char(6) not null,
+	title text not null,
+	url text null
+)
+;
+
