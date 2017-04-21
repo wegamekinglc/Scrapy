@@ -13,6 +13,7 @@ from airflow.models import DAG
 sys.path.append('/path/toyour/scrapy/root')
 
 from PySpyder.exchange.findSuspendInfo import exchange_suspend_info
+from PySpyder.exchange.findAnnouncementInfo import exchange_announcement_info
 
 start_date = dt.datetime(2015, 1, 1)
 dag_name = 'update_exchange_db'
@@ -30,7 +31,7 @@ dag = DAG(
 
 
 def update_suspend_info(ds, **kwargs):
-    ref_date = dt.datetime.strptime(kwargs['ts'][:10], '%Y-%m-%d')
+    ref_date = kwargs['next_execution_date']
     exchange_suspend_info(ref_date=ref_date)
     return 'updating for exchange suspend info is finished for {0}'.format(ref_date)
 
@@ -40,3 +41,17 @@ run_this1 = PythonOperator(
     provide_context=True,
     python_callable=update_suspend_info,
     dag=dag)
+
+
+def update_announcement_info(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+    exchange_announcement_info(ref_date=ref_date)
+    return 'updating for exchange announcement info is finished for {0}'.format(ref_date)
+
+
+run_this2 = PythonOperator(
+    task_id='update_announcement_info',
+    provide_context=True,
+    python_callable=update_announcement_info,
+    dag=dag)
+

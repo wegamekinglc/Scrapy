@@ -33,25 +33,25 @@ dag = DAG(
 
 
 def update_fund_index(ds, **kwargs):
-    ref_date = dt.datetime.strptime(kwargs['ts'][:10], '%Y-%m-%d')
+    ref_date = kwargs['next_execution_date']
     fund_index_spyder(ref_date=ref_date)
     return 'updating for fund index is finished for {0}'.format(ref_date)
 
 
 def update_fund_type(ds, **kwargs):
-    ref_date = dt.datetime.strptime(kwargs['ts'][:10], '%Y-%m-%d')
+    ref_date = kwargs['next_execution_date']
     fund_type_spyder(ref_date=ref_date)
     return 'updating for fund type is finished for {0}'.format(ref_date)
 
 
 def update_fund_style_ret(ds, **kwargs):
-    ref_date = dt.datetime.strptime(kwargs['ts'][:10], '%Y-%m-%d')
+    ref_date = kwargs['next_execution_date']
     fund_style_return_spyder(ref_date=ref_date)
     return 'updating for fund style return is finished for {0}'.format(ref_date)
 
 
 def update_fund_holding(ds, **kwargs):
-    ref_date = dt.datetime.strptime(kwargs['ts'][:10], '%Y-%m-%d')
+    ref_date = kwargs['next_execution_date']
     fund_holding_spyder(ref_date=ref_date)
     return 'updating for fund holding is finished for {0}'.format(ref_date)
 

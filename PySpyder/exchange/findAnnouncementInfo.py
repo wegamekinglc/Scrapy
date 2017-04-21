@@ -29,10 +29,11 @@ def exchange_announcement_info(ref_date):
         total_table = announcement_info(ref_date.strftime('%Y-%m-%d'))
         spyder_logger.info('Scraping finished for date {0}'.format(ref_date))
     else:
-        spyder_logger.info('{0} is not a valid bussiness day'.format(ref_date))
+        spyder_logger.info('{0} is not a valid business day'.format(ref_date))
+        return
 
     if total_table.empty:
-        spyder_logger.info('No new data is availabel until {0}'.format(ref_date))
+        spyder_logger.info('No new data is available until {0}'.format(ref_date))
         return
 
     total_table.drop_duplicates(['url'], inplace=True)
