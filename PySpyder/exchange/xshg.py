@@ -73,10 +73,6 @@ def find_existing(query_date):
 
 
 def announcement(query_date):
-    codes = []
-    titles = []
-    urls = []
-    report_dates = []
 
     with requests.Session() as session:
         session.headers['Referer'] = 'http://www.sse.com.cn/disclosure/listedinfo/announcement/'
@@ -94,15 +90,18 @@ def announcement(query_date):
 
         info_data.encoding = 'utf8'
         soup = BeautifulSoup(info_data.text, 'lxml')
-        content = json.loads(soup.text.split('(')[1].strip(')'))
+
+        text = soup.text
+        text = text[text.find('(') + 1: text.rfind(')')]
+
+        content = json.loads(text)
 
         json_data = content['result']
 
-        for row in json_data:
-            codes.append(row['security_Code'])
-            titles.append(row['title'])
-            urls.append(row['URL'])
-            report_dates.append(row['SSEDate'])
+        codes = [row['security_Code'] for row in json_data]
+        titles = [row['title'] for row in json_data]
+        urls = [row['URL'] for row in json_data]
+        report_dates = [row['SSEDate'] for row in json_data]
 
     df = pd.DataFrame({'报告日期': report_dates,
                        '证券代码': codes,
@@ -121,5 +120,5 @@ def announcement(query_date):
 
 if __name__ == '__main__':
     # sse
-    df = announcement('2017-04-17')
+    df = announcement('2015-04-02')
     print(df)

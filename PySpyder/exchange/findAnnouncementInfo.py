@@ -49,4 +49,4 @@ def exchange_announcement_info(ref_date):
 
 
 if __name__ == "__main__":
-    exchange_announcement_info(dt.datetime(2017, 4, 17))
+    exchange_announcement_info(dt.datetime(2015, 4, 2))
