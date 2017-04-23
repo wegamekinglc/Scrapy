@@ -140,6 +140,7 @@ def announcement(query_date):
                     tries += 1
                     if tries >= 5:
                         raise
+                    print('retrying for the {0} times'.format(tries))
                     time.sleep(10)
                     continue
 
