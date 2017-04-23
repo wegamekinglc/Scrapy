@@ -86,9 +86,9 @@ def suspend(query_date):
     return df
 
 
-def find_existing(query_date, end_date):
+def find_existing(query_date):
     engine = create_engine(exchange_db_settings)
-    sql = "select url from announcement_info where reportDate ='{0}' and exchangePlace = 'xshe'".format(query_date, end_date)
+    sql = "select url from announcement_info where reportDate ='{0}' and exchangePlace = 'xshe'".format(query_date)
     exist_data = pd.read_sql(sql, engine)
     return exist_data
 
@@ -104,6 +104,7 @@ def announcement(query_date):
         previous_page = None
 
         datas = []
+        exist_data = find_existing(query_date)
 
         while True:
 
