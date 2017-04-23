@@ -7,8 +7,10 @@ Created on 2016-10-25
 
 
 import os
+import time
 import datetime as dt
 import requests
+from requests.exceptions import ConnectionError
 from bs4 import BeautifulSoup
 import pandas as pd
 from PySpyder.utilities import exchange_db_settings
@@ -126,9 +128,20 @@ def announcement(query_date):
             urls = []
             report_dates = []
 
-            info_data = session.post(query_url, data={'startTime': query_date,
-                                                      'endTime': query_date,
-                                                      'pageNo': page})
+            tries = 0
+
+            while True:
+                try:
+                    info_data = session.post(query_url, data={'startTime': query_date,
+                                                              'endTime': query_date,
+                                                              'pageNo': page})
+                    break
+                except ConnectionError:
+                    tries += 1
+                    if tries >= 5:
+                        raise
+                    time.sleep(10)
+                    continue
 
             info_data.encoding = 'gbk'
             soup = BeautifulSoup(info_data.text, 'lxml')
