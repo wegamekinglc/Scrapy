@@ -6,11 +6,11 @@ Created on 2016-10-25
 """
 
 
+import os
 import datetime as dt
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-from PyFin.api import advanceDateByCalendar
 from PySpyder.utilities import exchange_db_settings
 from PySpyder.utilities import create_engine
 from PySpyder.utilities import spyder_logger
@@ -93,7 +93,20 @@ def find_existing(query_date):
     return exist_data
 
 
+def match_codes(short_names, full_codes):
+    codes = []
+    for name in short_names:
+        try:
+            codes.append(full_codes[full_codes['A股简称'] == name]['A股代码'].iloc[0])
+        except IndexError:
+            codes.append(0)
+    return codes
+
+
 def announcement(query_date):
+
+    full_codes_path = os.path.join(os.path.dirname(__file__), 'data/xshe.xlsx')
+    full_codes = pd.read_excel(full_codes_path)[['A股代码', 'A股简称']]
 
     with requests.Session() as session:
         session.headers['Referer'] = 'http://www.sse.com.cn/disclosure/listedinfo/announcement/'
@@ -108,7 +121,7 @@ def announcement(query_date):
 
         while True:
 
-            codes = []
+            short_names = []
             titles = []
             urls = []
             report_dates = []
@@ -126,10 +139,12 @@ def announcement(query_date):
             rows = soup.find_all('td', attrs={'class': 'td2'})
 
             for row in rows:
-                codes.append(0)
                 titles.append(row.a.text)
+                short_names.append(row.a.text.split('：')[0])
                 urls.append('http://disclosure.szse.cn/' + row.a['href'])
                 report_dates.append(row.span.text[1:-1])
+
+            codes = match_codes(short_names, full_codes)
 
             previous_page = soup
             page += 1
