@@ -8,7 +8,6 @@ Created on 2016-10-24
 import datetime as dt
 import pandas as pd
 
-from PyFin.api import isBizDay
 import PySpyder.exchange.xshe as xshe
 import PySpyder.exchange.xshg as xshg
 from PySpyder.utilities import insert_table
@@ -30,15 +29,10 @@ def announcement_info(query_date):
 
 def exchange_announcement_info(ref_date):
 
-    if isBizDay('china.sse', ref_date):
-        total_table = announcement_info(ref_date.strftime('%Y-%m-%d'))
-        spyder_logger.info('Scraping finished for date {0}'.format(ref_date))
-    else:
-        spyder_logger.info('{0} is not a valid business day'.format(ref_date))
-        return
+    total_table = announcement_info(ref_date.strftime('%Y-%m-%d'))
 
     if total_table.empty:
-        spyder_logger.info('No new data is available until {0}'.format(ref_date))
+        spyder_logger.info('No new data is available for {0}'.format(ref_date))
         return
 
     total_table.drop_duplicates(['url'], inplace=True)

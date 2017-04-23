@@ -50,7 +50,7 @@ def exchange_suspend_info(ref_date, force_update=False):
             spyder_logger.info('Scraping finished for date {0}'.format(date))
 
     if not datas:
-        spyder_logger.info('No data is availabel until {0}'.format(ref_date))
+        spyder_logger.info('No data is available for {0}'.format(ref_date))
         return
         
     total_table = pd.concat(datas)

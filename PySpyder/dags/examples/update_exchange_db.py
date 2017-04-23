@@ -27,7 +27,7 @@ default_args = {
 dag = DAG(
     dag_id=dag_name,
     default_args=default_args,
-    schedule_interval='0 9 * * 1,2,3,4,5')
+    schedule_interval='0 9 * * *')
 
 
 def update_suspend_info(ds, **kwargs):

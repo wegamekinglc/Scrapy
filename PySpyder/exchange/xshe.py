@@ -88,7 +88,7 @@ def suspend(query_date):
 
 def find_existing(query_date, end_date):
     engine = create_engine(exchange_db_settings)
-    sql = "select url from announcement_info where reportDate>='{0}' and reportDate <= '{1}' and exchangePlace = 'xshe'".format(query_date, end_date)
+    sql = "select url from announcement_info where reportDate ='{0}' and exchangePlace = 'xshe'".format(query_date, end_date)
     exist_data = pd.read_sql(sql, engine)
     return exist_data
 
@@ -105,9 +105,6 @@ def announcement(query_date):
 
         datas = []
 
-        end_date = advanceDateByCalendar('china.sse', query_date, '1b').strftime('%Y-%m-%d')
-        exist_data = find_existing(query_date, end_date)
-
         while True:
 
             codes = []
@@ -116,7 +113,7 @@ def announcement(query_date):
             report_dates = []
 
             info_data = session.post(query_url, data={'startTime': query_date,
-                                                      'endTime': end_date,
+                                                      'endTime': query_date,
                                                       'pageNo': page})
 
             info_data.encoding = 'gbk'
