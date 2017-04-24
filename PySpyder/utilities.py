@@ -7,6 +7,7 @@ Created on 2016-11-25
 import time
 import logging
 import sqlalchemy
+from requests.exceptions import ConnectionError
 
 
 class CustomLogger(object):

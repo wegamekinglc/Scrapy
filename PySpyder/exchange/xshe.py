@@ -7,10 +7,8 @@ Created on 2016-10-25
 
 
 import os
-import time
 import datetime as dt
 import requests
-from requests.exceptions import ConnectionError
 from bs4 import BeautifulSoup
 import pandas as pd
 from PySpyder.utilities import exchange_db_settings
