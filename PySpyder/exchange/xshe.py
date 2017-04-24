@@ -16,6 +16,7 @@ import pandas as pd
 from PySpyder.utilities import exchange_db_settings
 from PySpyder.utilities import create_engine
 from PySpyder.utilities import spyder_logger
+from PySpyder.utilities import try_request
 
 
 def suspend(query_date):
@@ -36,7 +37,8 @@ def suspend(query_date):
         page = 1
 
         while True:
-            info_data = session.post(query_url, data={'ACTIONID': 7,
+
+            info_data = try_request(session, query_url, data={'ACTIONID': 7,
                                                       'AJAX': 'AJAX-TRUE',
                                                       'CATALOGID': 1798,
                                                       'TABKEY': 'tab1',
@@ -45,7 +47,9 @@ def suspend(query_date):
                                                       'txtZzrq': query_date,
                                                       'tab1PAGECOUNT': 999,
                                                       'tab1RECORDCOUNT': 999999,
-                                                      'tab1PAGENUM': page})
+                                                      'tab1PAGENUM': page},
+                                    req_type='post')
+
             info_data.encoding = 'gbk'
             soup = BeautifulSoup(info_data.text, 'lxml')
 
@@ -128,21 +132,10 @@ def announcement(query_date):
             urls = []
             report_dates = []
 
-            tries = 0
-
-            while True:
-                try:
-                    info_data = session.post(query_url, data={'startTime': query_date,
+            info_data = try_request(session, query_url, data={'startTime': query_date,
                                                               'endTime': query_date,
-                                                              'pageNo': page})
-                    break
-                except ConnectionError:
-                    tries += 1
-                    if tries >= 5:
-                        raise
-                    print('retrying for the {0} times'.format(tries))
-                    time.sleep(10)
-                    continue
+                                                              'pageNo': page},
+                                    req_type='post')
 
             info_data.encoding = 'gbk'
             soup = BeautifulSoup(info_data.text, 'lxml')

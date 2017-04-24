@@ -13,6 +13,7 @@ import pandas as pd
 from PySpyder.utilities import exchange_db_settings
 from PySpyder.utilities import create_engine
 from PySpyder.utilities import spyder_logger
+from PySpyder.utilities import try_request
 
 
 def suspend(query_date):
@@ -33,7 +34,7 @@ def suspend(query_date):
 
         query_url = template_url.format(query_date=query_date)
 
-        info_data = session.post(query_url)
+        info_data = try_request(session, query_url, req_type='post')
 
         info_data.encoding = 'utf8'
         soup = BeautifulSoup(info_data.text, 'lxml')
@@ -87,7 +88,7 @@ def announcement(query_date):
 
         query_url = template_url.format(query_date=query_date)
 
-        info_data = session.post(query_url)
+        info_data = try_request(session, query_url, req_type='post')
 
         info_data.encoding = 'utf8'
         soup = BeautifulSoup(info_data.text, 'lxml')

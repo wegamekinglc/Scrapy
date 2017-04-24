@@ -4,6 +4,7 @@ Created on 2016-11-25
 @author: cheng.li
 """
 
+import time
 import logging
 import sqlalchemy
 
@@ -70,3 +71,21 @@ def insert_table(data, field_names, table_name, db_settings):
     engine = create_engine(db_settings)
     data.columns = field_names
     data.to_sql(table_name, engine, if_exists='append', index=False)
+
+
+def try_request(session, query_url, data=None, req_type='get', max_tries=5, sleep_seconds=10):
+    tries = 0
+    while True:
+        try:
+            if req_type == 'post':
+                info_data = session.post(query_url, data=data)
+            else:
+                info_data = session.get(query_url)
+            return info_data
+        except ConnectionError:
+            tries += 1
+            if tries >= max_tries:
+                raise
+            spyder_logger.warning('retrying for the {0} times'.format(tries))
+            time.sleep(sleep_seconds)
+            continue
