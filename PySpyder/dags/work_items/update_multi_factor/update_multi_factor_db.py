@@ -33,6 +33,20 @@ dag = DAG(
 )
 
 
+def create_ms_engine(db):
+    ms_user = ''
+    ms_pwd = ''
+    return sqlalchemy.create_engine(
+        'mssql+pymssql://{0}:{1}@10.63.6.219/{2}?charset=cp936'.format(ms_user, ms_pwd, db))
+
+
+def create_my_engine():
+    my_user = ''
+    my_pwd = ''
+    return sqlalchemy.create_engine(
+        'mysql+pymysql://{0}:{1}@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8'.format(my_user, my_pwd))
+
+
 def fetch_date(table, query_date, engine):
     query_date = query_date.replace('-', '')
     sql = "select * from {0} where Date = {1}".format(table, query_date)
@@ -66,11 +80,10 @@ def update_factor_data(ds, **kwargs):
 
     ref_date = ref_date.strftime('%Y-%m-%d')
 
-    conn1 = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.219/MultiFactor?charset=cp936')
+    conn1 = create_ms_engine('MultiFactor')
     df = fetch_date('FactorData', ref_date, conn1)
 
-    conn2 = sqlalchemy.create_engine(
-        'mysql+pymysql://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
+    conn2 = create_my_engine()
 
     delete_data('factor_data', ref_date, conn2)
     insert_data('factor_data', df, conn2)
@@ -86,11 +99,10 @@ def update_index_components(ds, **kwargs):
 
     ref_date = ref_date.strftime('%Y-%m-%d')
 
-    conn1 = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.219/MultiFactor?charset=cp936')
+    conn1 = create_ms_engine('MultiFactor')
     df = fetch_date('IndexComponents', ref_date, conn1)
 
-    conn2 = sqlalchemy.create_engine(
-        'mysql+pymysql://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
+    conn2 = create_my_engine()
 
     delete_data('index_components', ref_date, conn2)
     insert_data('index_components', df, conn2)
@@ -106,11 +118,10 @@ def update_index_data(ds, **kwargs):
 
     ref_date = ref_date.strftime('%Y-%m-%d')
 
-    conn1 = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.219/MultiFactor?charset=cp936')
+    conn1 = create_ms_engine('MultiFactor')
     df = fetch_date('StockIndices', ref_date, conn1)
 
-    conn2 = sqlalchemy.create_engine(
-        'mysql+pymysql://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
+    conn2 = create_my_engine()
 
     delete_data('index_data', ref_date, conn2)
     insert_data('index_data', df, conn2)
@@ -126,11 +137,10 @@ def update_risk_factor_300(ds, **kwargs):
 
     ref_date = ref_date.strftime('%Y-%m-%d')
 
-    conn1 = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.219/PortfolioManagements300?charset=cp936')
+    conn1 = create_ms_engine('PortfolioManagements300')
     df = fetch_date('RiskFactor', ref_date, conn1)
 
-    conn2 = sqlalchemy.create_engine(
-        'mysql+pymysql://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
+    conn2 = create_my_engine()
 
     delete_data('risk_factor_300', ref_date, conn2)
     insert_data('risk_factor_300', df, conn2)
@@ -146,11 +156,10 @@ def update_risk_factor_500(ds, **kwargs):
 
     ref_date = ref_date.strftime('%Y-%m-%d')
 
-    conn1 = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.219/PortfolioManagements500?charset=cp936')
+    conn1 = create_ms_engine('PortfolioManagements500')
     df = fetch_date('RiskFactor', ref_date, conn1)
 
-    conn2 = sqlalchemy.create_engine(
-        'mysql+pymysql://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
+    conn2 = create_my_engine()
 
     delete_data('risk_factor_500', ref_date, conn2)
     insert_data('risk_factor_500', df, conn2)
