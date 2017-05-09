@@ -10,7 +10,11 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.models import DAG
 import sqlalchemy
 import pandas as pd
+from simpleutils import CustomLogger
 from PyFin.api import isBizDay
+
+
+logger = CustomLogger('MULTI_FACTOR', 'info')
 
 
 start_date = dt.datetime(2017, 4, 26)
@@ -57,7 +61,7 @@ def update_factor_data(ds, **kwargs):
     ref_date = kwargs['next_execution_date']\
 
     if not isBizDay('china.sse', ref_date):
-        print("{0} is not a business day".format(ref_date))
+        logger.info("{0} is not a business day".format(ref_date))
         return 0
 
     ref_date = ref_date.strftime('%Y-%m-%d')
@@ -77,7 +81,7 @@ def update_index_components(ds, **kwargs):
     ref_date = kwargs['next_execution_date']\
 
     if not isBizDay('china.sse', ref_date):
-        print("{0} is not a business day".format(ref_date))
+        logger.info("{0} is not a business day".format(ref_date))
         return 0
 
     ref_date = ref_date.strftime('%Y-%m-%d')
@@ -97,7 +101,7 @@ def update_index_data(ds, **kwargs):
     ref_date = kwargs['next_execution_date']\
 
     if not isBizDay('china.sse', ref_date):
-        print("{0} is not a business day".format(ref_date))
+        logger.info("{0} is not a business day".format(ref_date))
         return 0
 
     ref_date = ref_date.strftime('%Y-%m-%d')
@@ -117,7 +121,7 @@ def update_risk_factor_300(ds, **kwargs):
     ref_date = kwargs['next_execution_date']\
 
     if not isBizDay('china.sse', ref_date):
-        print("{0} is not a business day".format(ref_date))
+        logger.info("{0} is not a business day".format(ref_date))
         return 0
 
     ref_date = ref_date.strftime('%Y-%m-%d')
@@ -137,7 +141,7 @@ def update_risk_factor_500(ds, **kwargs):
     ref_date = kwargs['next_execution_date']\
 
     if not isBizDay('china.sse', ref_date):
-        print("{0} is not a business day".format(ref_date))
+        logger.info("{0} is not a business day".format(ref_date))
         return 0
 
     ref_date = ref_date.strftime('%Y-%m-%d')
