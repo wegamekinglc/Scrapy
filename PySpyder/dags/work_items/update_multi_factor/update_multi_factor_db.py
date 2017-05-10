@@ -33,6 +33,7 @@ dag = DAG(
 )
 
 date_formatted_tables = {'FactorIndicator_500'}
+date_lowered = {'AlphaFactors_Difeiyue'}
 
 
 def create_ms_engine(db):
@@ -60,9 +61,14 @@ def fetch_date(table, query_date, engine):
     query_date = query_date.replace('-', '')
     if table in date_formatted_tables:
         sql = "select * from {0} where Date = '{1}'".format(table, query_date)
+        df = pd.read_sql_query(sql, engine)
+    elif table in date_lowered:
+        sql = "select * from {0} where date = {1}".format(table, query_date)
+        df = pd.read_sql_query(sql, engine)
+        df.replace({'date': 'Date', 'code': 'Code'}, inplace=True)
     else:
         sql = "select * from {0} where Date = {1}".format(table, query_date)
-    df = pd.read_sql_query(sql, engine)
+        df = pd.read_sql_query(sql, engine)
 
     if table == 'FactorData':
         cols = df.columns.tolist()
