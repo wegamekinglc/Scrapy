@@ -65,7 +65,7 @@ def fetch_date(table, query_date, engine):
     elif table in date_lowered:
         sql = "select * from {0} where date = {1}".format(table, query_date)
         df = pd.read_sql_query(sql, engine)
-        df.replace({'date': 'Date', 'code': 'Code'}, inplace=True)
+        df.rename(columns={'date': 'Date', 'code': 'Code'}, inplace=True)
     else:
         sql = "select * from {0} where Date = {1}".format(table, query_date)
         df = pd.read_sql_query(sql, engine)
@@ -276,6 +276,29 @@ def update_prod_500(ds, **kwargs):
     return 0
 
 
+def update_trade_data(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = ref_date.strftime('%Y-%m-%d')
+
+    conn1 = create_ms_engine('MultiFactor')
+    df = fetch_date('TradingInfo1', ref_date, conn1)
+
+    conn2 = create_my_engine()
+
+    delete_data('trade_data', ref_date, conn2)
+    insert_data('trade_data', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('trade_data', ref_date, conn3)
+    insert_data('trade_data', df, conn3)
+    return 0
+
+
 run_this1 = PythonOperator(
     task_id='update_factor_data',
     provide_context=True,
@@ -329,5 +352,12 @@ run_this8 = PythonOperator(
     task_id='update_prod_500',
     provide_context=True,
     python_callable=update_prod_500,
+    dag=dag
+)
+
+run_this9 = PythonOperator(
+    task_id='update_trade_data',
+    provide_context=True,
+    python_callable=update_trade_data,
     dag=dag
 )
