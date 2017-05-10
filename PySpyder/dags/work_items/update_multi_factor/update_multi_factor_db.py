@@ -36,15 +36,15 @@ date_formatted_tables = {'FactorIndicator_500'}
 
 
 def create_ms_engine(db):
-    ms_user = 'sa'
-    ms_pwd = 'A12345678!'
+    ms_user = ''
+    ms_pwd = ''
     return sqlalchemy.create_engine(
         'mssql+pymssql://{0}:{1}@10.63.6.219/{2}?charset=cp936'.format(ms_user, ms_pwd, db))
 
 
 def create_my_engine():
-    my_user = 'sa'
-    my_pwd = 'We051253524522'
+    my_user = ''
+    my_pwd = ''
     return sqlalchemy.create_engine(
         'mysql+pymysql://{0}:{1}@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8'.format(my_user, my_pwd))
 
