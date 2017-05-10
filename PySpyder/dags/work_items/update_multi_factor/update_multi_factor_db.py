@@ -49,6 +49,13 @@ def create_my_engine():
         'mysql+pymysql://{0}:{1}@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8'.format(my_user, my_pwd))
 
 
+def create_my_engine2():
+    my_user = ''
+    my_pwd = ''
+    return sqlalchemy.create_engine(
+        'mysql+pymysql://{0}:{1}@10.63.6.176/multifactor?charset=utf8'.format(my_user, my_pwd))
+
+
 def fetch_date(table, query_date, engine):
     query_date = query_date.replace('-', '')
     if table in date_formatted_tables:
@@ -94,6 +101,11 @@ def update_factor_data(ds, **kwargs):
 
     delete_data('factor_data', ref_date, conn2)
     insert_data('factor_data', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('factor_data', ref_date, conn3)
+    insert_data('factor_data', df, conn3)
+
     return 0
 
 
@@ -113,6 +125,10 @@ def update_index_components(ds, **kwargs):
 
     delete_data('index_components', ref_date, conn2)
     insert_data('index_components', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('index_components', ref_date, conn3)
+    insert_data('index_components', df, conn3)
     return 0
 
 
@@ -132,6 +148,10 @@ def update_index_data(ds, **kwargs):
 
     delete_data('index_data', ref_date, conn2)
     insert_data('index_data', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('index_data', ref_date, conn3)
+    insert_data('index_data', df, conn3)
     return 0
 
 
@@ -151,6 +171,10 @@ def update_risk_factor_300(ds, **kwargs):
 
     delete_data('risk_factor_300', ref_date, conn2)
     insert_data('risk_factor_300', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('risk_factor_300', ref_date, conn3)
+    insert_data('risk_factor_300', df, conn3)
     return 0
 
 
@@ -170,6 +194,10 @@ def update_risk_factor_500(ds, **kwargs):
 
     delete_data('risk_factor_500', ref_date, conn2)
     insert_data('risk_factor_500', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('risk_factor_500', ref_date, conn3)
+    insert_data('risk_factor_500', df, conn3)
     return 0
 
 
@@ -189,6 +217,10 @@ def update_factor_indicator(ds, **kwargs):
 
     delete_data('factor_indicator', ref_date, conn2)
     insert_data('factor_indicator', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('factor_indicator', ref_date, conn3)
+    insert_data('factor_indicator', df, conn3)
     return 0
 
 
