@@ -86,7 +86,7 @@ def insert_data(table, df, engine):
 
 
 def update_factor_data(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']\
+    ref_date = kwargs['next_execution_date']
 
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -110,7 +110,7 @@ def update_factor_data(ds, **kwargs):
 
 
 def update_index_components(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']\
+    ref_date = kwargs['next_execution_date']
 
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -133,7 +133,7 @@ def update_index_components(ds, **kwargs):
 
 
 def update_index_data(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']\
+    ref_date = kwargs['next_execution_date']
 
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -156,7 +156,7 @@ def update_index_data(ds, **kwargs):
 
 
 def update_risk_factor_300(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']\
+    ref_date = kwargs['next_execution_date']
 
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -179,7 +179,7 @@ def update_risk_factor_300(ds, **kwargs):
 
 
 def update_risk_factor_500(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']\
+    ref_date = kwargs['next_execution_date']
 
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -202,7 +202,7 @@ def update_risk_factor_500(ds, **kwargs):
 
 
 def update_factor_indicator(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']\
+    ref_date = kwargs['next_execution_date']
 
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -221,6 +221,52 @@ def update_factor_indicator(ds, **kwargs):
     conn3 = create_my_engine2()
     delete_data('factor_indicator', ref_date, conn3)
     insert_data('factor_indicator', df, conn3)
+    return 0
+
+
+def update_prod_300(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = ref_date.strftime('%Y-%m-%d')
+
+    conn1 = create_ms_engine('PortfolioManagements300')
+    df = fetch_date('AlphaFactors_Difeiyue', ref_date, conn1)
+
+    conn2 = create_my_engine()
+
+    delete_data('prod_300', ref_date, conn2)
+    insert_data('prod_300', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('prod_300', ref_date, conn3)
+    insert_data('prod_300', df, conn3)
+    return 0
+
+
+def update_prod_500(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = ref_date.strftime('%Y-%m-%d')
+
+    conn1 = create_ms_engine('PortfolioManagements500')
+    df = fetch_date('AlphaFactors_Difeiyue', ref_date, conn1)
+
+    conn2 = create_my_engine()
+
+    delete_data('prod_500', ref_date, conn2)
+    insert_data('prod_500', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('prod_500', ref_date, conn3)
+    insert_data('prod_500', df, conn3)
     return 0
 
 
@@ -263,5 +309,19 @@ run_this6 = PythonOperator(
     task_id='update_factor_indicator',
     provide_context=True,
     python_callable=update_factor_indicator,
+    dag=dag
+)
+
+run_this7 = PythonOperator(
+    task_id='update_prod_300',
+    provide_context=True,
+    python_callable=update_prod_300,
+    dag=dag
+)
+
+run_this8 = PythonOperator(
+    task_id='update_prod_500',
+    provide_context=True,
+    python_callable=update_prod_500,
     dag=dag
 )
