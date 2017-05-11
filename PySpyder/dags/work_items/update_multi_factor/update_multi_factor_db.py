@@ -174,7 +174,6 @@ def update_risk_factor_300(ds, **kwargs):
     df = fetch_date('RiskFactor', ref_date, conn1)
 
     conn2 = create_my_engine()
-
     delete_data('risk_factor_300', ref_date, conn2)
     insert_data('risk_factor_300', df, conn2)
 
