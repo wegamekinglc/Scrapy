@@ -32,7 +32,7 @@ dag = DAG(
     schedule_interval='0 18 * * 1,2,3,4,5'
 )
 
-date_formatted_tables = {'FactorIndicator_500'}
+date_formatted_tables = {'FactorIndicator_500', 'Portfolio_LongTop_500'}
 date_lowered = {'AlphaFactors_Difeiyue'}
 
 
@@ -299,6 +299,29 @@ def update_trade_data(ds, **kwargs):
     return 0
 
 
+def update_portfolio_long_top(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = ref_date.strftime('%Y-%m-%d')
+
+    conn1 = create_ms_engine('FactorPerformance')
+    df = fetch_date('Portfolio_LongTop_500', ref_date, conn1)
+
+    conn2 = create_my_engine()
+
+    delete_data('portfolio_longtop', ref_date, conn2)
+    insert_data('portfolio_longtop', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('portfolio_longtop', ref_date, conn3)
+    insert_data('portfolio_longtop', df, conn3)
+    return 0
+
+
 run_this1 = PythonOperator(
     task_id='update_factor_data',
     provide_context=True,
@@ -359,5 +382,12 @@ run_this9 = PythonOperator(
     task_id='update_trade_data',
     provide_context=True,
     python_callable=update_trade_data,
+    dag=dag
+)
+
+run_this10 = PythonOperator(
+    task_id='update_portfolio_long_top',
+    provide_context=True,
+    python_callable=update_portfolio_long_top,
     dag=dag
 )
