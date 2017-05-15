@@ -12,6 +12,8 @@ import sqlalchemy
 import pandas as pd
 from simpleutils import CustomLogger
 from PyFin.api import isBizDay
+from PyFin.api import advanceDateByCalendar
+from PyFin.api import bizDatesList
 
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
@@ -51,8 +53,8 @@ def create_my_engine():
 
 
 def create_my_engine2():
-    my_user = ''
-    my_pwd = ''
+    my_user = 'sa'
+    my_pwd = 'we083826'
     return sqlalchemy.create_engine(
         'mysql+pymysql://{0}:{1}@10.63.6.176/multifactor?charset=utf8'.format(my_user, my_pwd))
 
@@ -212,7 +214,8 @@ def update_factor_indicator(ds, **kwargs):
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
         return 0
-
+    
+    ref_date = advanceDateByCalendar('china.sse', ref_date, '-2b')
     ref_date = ref_date.strftime('%Y-%m-%d')
 
     conn1 = create_ms_engine('FactorPerformance')
@@ -321,6 +324,83 @@ def update_portfolio_long_top(ds, **kwargs):
     return 0
 
 
+def update_return_data_500(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    start_date = advanceDateByCalendar('china.sse', ref_date, '-30b')
+
+    for date in bizDatesList('china.sse', start_date, ref_date):
+
+        date = date.strftime('%Y-%m-%d')
+
+        conn1 = create_ms_engine('PortfolioManagements500')
+        df = fetch_date('StockReturns', date, conn1)
+
+        conn2 = create_my_engine()
+
+        delete_data('return_500', date, conn2)
+        insert_data('return_500', df, conn2)
+
+        conn3 = create_my_engine2()
+        delete_data('return_500', date, conn3)
+        insert_data('return_500', df, conn3)
+    return 0
+
+
+def update_return_data_300(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    start_date = advanceDateByCalendar('china.sse', ref_date, '-30b')
+
+    for date in bizDatesList('china.sse', start_date, ref_date):
+     
+        date = date.strftime('%Y-%m-%d')
+
+        conn1 = create_ms_engine('PortfolioManagements300')
+        df = fetch_date('StockReturns', date, conn1)
+
+        conn2 = create_my_engine()
+
+        delete_data('return_300', date, conn2)
+        insert_data('return_300', df, conn2)
+
+        conn3 = create_my_engine2()
+        delete_data('return_300', date, conn3)
+        insert_data('return_300', df, conn3)
+    return 0
+
+
+def update_common_500(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = ref_date.strftime('%Y-%m-%d')
+
+    conn1 = create_ms_engine('PortfolioManagements500')
+    df = fetch_date('AlphaFactors_Common', ref_date, conn1)
+
+    conn2 = create_my_engine()
+
+    delete_data('common_500', ref_date, conn2)
+    insert_data('common_500', df, conn2)
+
+    conn3 = create_my_engine2()
+    delete_data('common_500', ref_date, conn3)
+    insert_data('common_500', df, conn3)
+    return 0
+
+
 run_this1 = PythonOperator(
     task_id='update_factor_data',
     provide_context=True,
@@ -388,5 +468,26 @@ run_this10 = PythonOperator(
     task_id='update_portfolio_long_top',
     provide_context=True,
     python_callable=update_portfolio_long_top,
+    dag=dag
+)
+
+run_this11 = PythonOperator(
+    task_id='update_return_data_300',
+    provide_context=True,
+    python_callable=update_return_data_300,
+    dag=dag
+)
+
+run_this12 = PythonOperator(
+    task_id='update_return_data_500',
+    provide_context=True,
+    python_callable=update_return_data_500,
+    dag=dag
+)
+
+run_this13 = PythonOperator(
+    task_id='update_common_500',
+    provide_context=True,
+    python_callable=update_common_500,
     dag=dag
 )
