@@ -176,7 +176,6 @@ def update_risk_factor_300(ds, **kwargs):
     df = fetch_date('RiskFactor', ref_date, conn1)
 
     conn2 = create_my_engine()
-
     delete_data('risk_factor_300', ref_date, conn2)
     insert_data('risk_factor_300', df, conn2)
 
@@ -402,7 +401,6 @@ def update_common_500(ds, **kwargs):
     return 0
 
 
-
 run_this1 = PythonOperator(
     task_id='update_factor_data',
     provide_context=True,
@@ -493,4 +491,3 @@ run_this13 = PythonOperator(
     python_callable=update_common_500,
     dag=dag
 )
-
