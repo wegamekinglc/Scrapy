@@ -102,8 +102,10 @@ def update_daily_portfolio(ds, **kwargs):
     engine = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.100/WindDB')
     black_list = pd.read_sql("select S_INFO_WINDCODE, S_INFO_LISTDATE, sum(S_SHARE_RATIO) as s_ratio from ASHARECOMPRESTRICTED \
                               where S_INFO_LISTDATE BETWEEN '{0}' and '{1}' \
-                              and S_SHARE_LSTTYPECODE=479002000 GROUP BY S_INFO_WINDCODE, S_INFO_LISTDATE ORDER BY s_ratio DESC;".format(execution_date.strftime('%Y%m%d'),
-                                                                                                                                         (execution_date + dt.timedelta(days=14)).strftime('%Y%m%d')), engine)
+                              and S_SHARE_LSTTYPECODE=479002000 "
+                             "GROUP BY S_INFO_WINDCODE, S_INFO_LISTDATE ORDER BY s_ratio DESC;"
+                             .format((execution_date - dt.timedelta(days=7)).strftime('%Y%m%d'),
+                                     (execution_date + dt.timedelta(days=14)).strftime('%Y%m%d')), engine)
 
     black_list = black_list[black_list['s_ratio'] >= 3.]
     black_list.S_INFO_WINDCODE = black_list.S_INFO_WINDCODE.str.split('.').apply(lambda x: int(x[0]))
