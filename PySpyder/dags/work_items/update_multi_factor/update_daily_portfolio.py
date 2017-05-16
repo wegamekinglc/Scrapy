@@ -19,6 +19,7 @@ from alphamind.data.winsorize import winsorize_normal
 from alphamind.portfolio.linearbuilder import linear_build
 from simpleutils import CustomLogger
 from PyFin.api import isBizDay
+from PyFin.api import advanceDateByCalendar
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
@@ -31,11 +32,10 @@ default_args = {
     'start_date': start_date
 }
 
-
 dag = DAG(
     dag_id=dag_name,
     default_args=default_args,
-    schedule_interval='0 18 * * 1,2,3,4,5'
+    schedule_interval='0 8 * * 1,2,3,4,5'
 )
 
 
@@ -46,7 +46,10 @@ def update_daily_portfolio(ds, **kwargs):
         logger.info("{0} is not a business day".format(execution_date))
         return 0
 
-    ref_date = execution_date.strftime('%Y-%m-%d')
+    prev_date = advanceDateByCalendar('china.sse', execution_date, '-1b')
+
+    logger.info("factor data is loading for {0}".format(prev_date))
+    logger.info("Current running date is {0}".format(execution_date))
 
     common_factors = ['EPSAfterNonRecurring', 'DivP']
     prod_factors = ['CFinc1', 'BDTO', 'RVOL']
@@ -59,16 +62,16 @@ def update_daily_portfolio(ds, **kwargs):
     engine = sqlalchemy.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/multifactor?charset=utf8')
 
     common_factors_df = pd.read_sql("select Date, Code, 申万一级行业, {0} from factor_data where Date = '{1}'"
-                                    .format(','.join(common_factors), ref_date), engine)
+                                    .format(','.join(common_factors), prev_date), engine)
 
     prod_factors_df = pd.read_sql("select Date, Code, {0} from prod_500 where Date = '{1}'"
-                                  .format(','.join(prod_factors), ref_date), engine)
+                                  .format(','.join(prod_factors), prev_date), engine)
 
     risk_factor_df = pd.read_sql("select Date, Code, {0} from risk_factor_500 where Date = '{1}'"
-                                 .format(','.join(risk_factors_500), ref_date), engine)
+                                 .format(','.join(risk_factors_500), prev_date), engine)
 
     index_components_df = pd.read_sql("select Date, Code, {0} from index_components where Date = '{1}'"
-                                      .format(index_components, ref_date), engine)
+                                      .format(index_components, prev_date), engine)
 
     total_data = pd.merge(common_factors_df, prod_factors_df, on=['Date', 'Code'])
     total_data = pd.merge(total_data, risk_factor_df, on=['Date', 'Code'])
@@ -125,6 +128,18 @@ def update_daily_portfolio(ds, **kwargs):
     mask_array2 = total_data.Code.isin(black_list2.S_INFO_WINDCODE)
     ubound[mask_array2.values] = 0.
 
+    # get black list 3
+    black_list3 = pd.read_sql("SELECT S_INFO_WINDCODE, S_DQ_SUSPENDDATE FROM ASHARETRADINGSUSPENSION AS a "
+                              "WHERE a.S_DQ_SUSPENDDATE = (SELECT top 1 S_DQ_SUSPENDDATE FROM ASHARETRADINGSUSPENSION AS b "
+                              "WHERE a.S_INFO_WINDCODE=b.S_INFO_WINDCODE and cast(floor(cast(a.OPDATE as float)) as datetime) <= '{0}' ORDER BY b.S_DQ_SUSPENDDATE DESC) "
+                              "AND a.S_INFO_WINDCODE IN (SELECT S_INFO_WINDCODE FROM ASHAREDESCRIPTION AS c "
+                              "WHERE c.S_INFO_DELISTDATE IS NULL) AND (a.S_DQ_SUSPENDDATE>='{1}' OR (a.S_DQ_RESUMPDATE IS NULL AND a.S_DQ_SUSPENDTYPE=444003000))"
+                              .format(execution_date, execution_date.strftime('%Y%m%d')),
+                              engine)
+    black_list3.S_INFO_WINDCODE = black_list3.S_INFO_WINDCODE.str.split('.').apply(lambda x: int(x[0]))
+    mask_array3 = total_data.Code.isin(black_list3.S_INFO_WINDCODE)
+    ubound[mask_array3.values] = 0.
+
     status, value, ret = linear_build(er,
                                       lbound=lbound,
                                       ubound=ubound,
@@ -145,7 +160,8 @@ def update_daily_portfolio(ds, **kwargs):
         portfolio_collection = db.portfolio
 
         detail_info = {}
-        for code, w, bm_w, ind in zip(total_data.Code.values, ret, total_data[index_components].values, total_data['申万一级行业'].values):
+        for code, w, bm_w, ind in zip(total_data.Code.values, ret, total_data[index_components].values,
+                                      total_data['申万一级行业'].values):
             detail_info[str(code)] = {
                 'weight': w,
                 'industry': ind,
@@ -158,7 +174,7 @@ def update_daily_portfolio(ds, **kwargs):
         portfolio_collection.delete_one({'Date': execution_date})
         portfolio_collection.insert_one(portfolio_dict)
 
-        portfolio.to_csv('~/mnt/personal/licheng/portfolio/zz500/{0}.csv'.format(ref_date), encoding='gbk')
+        portfolio.to_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')), encoding='gbk')
 
     return 0
 
@@ -170,6 +186,5 @@ run_this1 = PythonOperator(
     dag=dag
 )
 
-
 if __name__ == '__main__':
-    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 15))
+    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 17))
