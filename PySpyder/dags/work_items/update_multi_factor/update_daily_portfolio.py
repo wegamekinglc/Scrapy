@@ -19,10 +19,9 @@ from alphamind.portfolio.linearbuilder import linear_build
 from simpleutils import CustomLogger
 from PyFin.api import isBizDay
 
-
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
-start_date = dt.datetime(2017, 5, 11)
+start_date = dt.datetime(2017, 4, 1)
 dag_name = 'update_daily_portfolio'
 
 default_args = {
@@ -30,6 +29,7 @@ default_args = {
     'depends_on_past': True,
     'start_date': start_date
 }
+
 
 dag = DAG(
     dag_id=dag_name,
@@ -39,14 +39,13 @@ dag = DAG(
 
 
 def update_daily_portfolio(ds, **kwargs):
+    execution_date = kwargs['next_execution_date']
 
-    ref_date = kwargs['next_execution_date']
-
-    if not isBizDay('china.sse', ref_date):
-        logger.info("{0} is not a business day".format(ref_date))
+    if not isBizDay('china.sse', execution_date):
+        logger.info("{0} is not a business day".format(execution_date))
         return 0
 
-    ref_date = ref_date.strftime('%Y-%m-%d')
+    ref_date = execution_date.strftime('%Y-%m-%d')
 
     common_factors = ['EPSAfterNonRecurring', 'DivP']
     prod_factors = ['CFinc1', 'BDTO', 'RVOL']
@@ -56,7 +55,7 @@ def update_daily_portfolio(ds, **kwargs):
 
     index_components = '500Weight'
 
-    engine = sqlalchemy.create_engine('mysql+mysqldb://user:pwd@host/multifactor?charset=utf8')
+    engine = sqlalchemy.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/multifactor?charset=utf8')
 
     common_factors_df = pd.read_sql("select Date, Code, 申万一级行业, {0} from factor_data where Date = '{1}'"
                                     .format(','.join(common_factors), ref_date), engine)
@@ -93,11 +92,25 @@ def update_daily_portfolio(ds, **kwargs):
     # portfolio construction
 
     bm = total_data[index_components].values
-    lbound = 0.
+    lbound = np.zeros(len(total_data))
     ubound = 0.01 + bm
     lbound_exposure = -0.01
     ubound_exposure = 0.01
     risk_exposure = total_data[risk_factors_names].values
+
+    # get black list
+    engine = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.100/WindDB')
+    black_list = pd.read_sql("select S_INFO_WINDCODE, S_INFO_LISTDATE, sum(S_SHARE_RATIO) as s_ratio from ASHARECOMPRESTRICTED \
+                              where S_INFO_LISTDATE BETWEEN '{0}' and '{1}' \
+                              and S_SHARE_LSTTYPECODE=479002000 GROUP BY S_INFO_WINDCODE, S_INFO_LISTDATE ORDER BY s_ratio DESC;".format(execution_date.strftime('%Y%m%d'),
+                                                                                                                                         (execution_date + dt.timedelta(days=14)).strftime('%Y%m%d')), engine)
+
+    black_list = black_list[black_list['s_ratio'] >= 3.]
+    black_list.S_INFO_WINDCODE = black_list.S_INFO_WINDCODE.str.split('.').apply(lambda x: int(x[0]))
+
+    mask_array = total_data.Code.isin(black_list.S_INFO_WINDCODE)
+
+    ubound[mask_array] = 0.
 
     status, value, ret = linear_build(er,
                                       lbound=lbound,
@@ -127,4 +140,5 @@ run_this1 = PythonOperator(
 )
 
 
-
+if __name__ == '__main__':
+    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 15))
