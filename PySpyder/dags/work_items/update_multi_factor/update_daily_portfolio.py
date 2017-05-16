@@ -9,6 +9,7 @@ import datetime as dt
 import numpy as np
 import sqlalchemy
 import pandas as pd
+import pymongo
 from airflow.operators.python_operator import PythonOperator
 from airflow.models import DAG
 from alphamind.examples.config import risk_factors_500
@@ -138,6 +139,24 @@ def update_daily_portfolio(ds, **kwargs):
         portfolio = pd.DataFrame({'weight': ret,
                                   'industry': total_data['申万一级行业'].values,
                                   'zz500': total_data[index_components].values}, index=total_data.Code)
+
+        client = pymongo.MongoClient('mongodb://10.63.6.176:27017')
+        db = client.multifactor
+        portfolio_collection = db.portfolio
+
+        detail_info = {}
+        for code, w, bm_w, ind in zip(total_data.Code.values, ret, total_data[index_components].values, total_data['申万一级行业'].values):
+            detail_info[str(code)] = {
+                'weight': w,
+                'industry': ind,
+                'zz500': bm_w
+            }
+
+        portfolio_dict = {'Date': execution_date,
+                          'portfolio': detail_info}
+
+        portfolio_collection.delete_one({'Date': execution_date})
+        portfolio_collection.insert_one(portfolio_dict)
 
         portfolio.to_csv('~/mnt/personal/licheng/portfolio/zz500/{0}.csv'.format(ref_date), encoding='gbk')
 
