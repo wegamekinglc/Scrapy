@@ -9,8 +9,8 @@ import datetime as dt
 import numpy as np
 import sqlalchemy
 import pandas as pd
-from airflow.operators.python_operator import PythonOperator
-from airflow.models import DAG
+# from airflow.operators.python_operator import PythonOperator
+# from airflow.models import DAG
 from alphamind.examples.config import risk_factors_500
 from alphamind.data.standardize import standardize
 from alphamind.data.neutralize import neutralize
@@ -31,11 +31,11 @@ default_args = {
 }
 
 
-dag = DAG(
-    dag_id=dag_name,
-    default_args=default_args,
-    schedule_interval='0 18 * * 1,2,3,4,5'
-)
+# dag = DAG(
+#     dag_id=dag_name,
+#     default_args=default_args,
+#     schedule_interval='0 18 * * 1,2,3,4,5'
+# )
 
 
 def update_daily_portfolio(ds, **kwargs):
@@ -50,7 +50,7 @@ def update_daily_portfolio(ds, **kwargs):
     common_factors = ['EPSAfterNonRecurring', 'DivP']
     prod_factors = ['CFinc1', 'BDTO', 'RVOL']
 
-    factor_weights = 1. / np.array([15.44, 32.72, 49.90, 115.27, 97.76])
+    factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
     factor_weights = factor_weights / factor_weights.sum()
 
     index_components = '500Weight'
@@ -98,7 +98,7 @@ def update_daily_portfolio(ds, **kwargs):
     ubound_exposure = 0.01
     risk_exposure = total_data[risk_factors_names].values
 
-    # get black list
+    # get black list 1
     engine = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.100/WindDB')
     black_list = pd.read_sql("select S_INFO_WINDCODE, S_INFO_LISTDATE, sum(S_SHARE_RATIO) as s_ratio from ASHARECOMPRESTRICTED \
                               where S_INFO_LISTDATE BETWEEN '{0}' and '{1}' \
@@ -111,8 +111,18 @@ def update_daily_portfolio(ds, **kwargs):
     black_list.S_INFO_WINDCODE = black_list.S_INFO_WINDCODE.str.split('.').apply(lambda x: int(x[0]))
 
     mask_array = total_data.Code.isin(black_list.S_INFO_WINDCODE)
+    ubound[mask_array.values] = 0.
 
-    ubound[mask_array] = 0.
+    # get black list 2
+    black_list2 = pd.read_sql("select S_INFO_WINDCODE, AVG(S_WQ_AMOUNT) as avg_amount from ASHAREWEEKLYYIELD "
+                              "where TRADE_DT < {1} and TRADE_DT >= {0} GROUP BY S_INFO_WINDCODE;"
+                              .format((execution_date - dt.timedelta(days=30)).strftime('%Y%m%d'),
+                                      execution_date.strftime('%Y%m%d')), engine)
+    black_list2 = black_list2[black_list2['avg_amount'] <= 15000.]
+    black_list2.S_INFO_WINDCODE = black_list2.S_INFO_WINDCODE.str.split('.').apply(lambda x: int(x[0]))
+
+    mask_array2 = total_data.Code.isin(black_list2.S_INFO_WINDCODE)
+    ubound[mask_array2.values] = 0.
 
     status, value, ret = linear_build(er,
                                       lbound=lbound,
@@ -129,17 +139,17 @@ def update_daily_portfolio(ds, **kwargs):
                                   'industry': total_data['申万一级行业'].values,
                                   'zz500': total_data[index_components].values}, index=total_data.Code)
 
-        portfolio.to_csv(r'\\10.63.6.71\sharespace\personal\licheng\portfolio\{0}.csv'.format(ref_date))
+        portfolio.to_csv('~/mnt/personal/licheng/portfolio/zz500/{0}.csv'.format(ref_date), encoding='gbk')
 
     return 0
 
 
-run_this1 = PythonOperator(
-    task_id='update_daily_portfolio',
-    provide_context=True,
-    python_callable=update_daily_portfolio,
-    dag=dag
-)
+# run_this1 = PythonOperator(
+#     task_id='update_daily_portfolio',
+#     provide_context=True,
+#     python_callable=update_daily_portfolio,
+#     dag=dag
+# )
 
 
 if __name__ == '__main__':
