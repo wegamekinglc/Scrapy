@@ -9,8 +9,8 @@ import datetime as dt
 import numpy as np
 import sqlalchemy
 import pandas as pd
-# from airflow.operators.python_operator import PythonOperator
-# from airflow.models import DAG
+from airflow.operators.python_operator import PythonOperator
+from airflow.models import DAG
 from alphamind.examples.config import risk_factors_500
 from alphamind.data.standardize import standardize
 from alphamind.data.neutralize import neutralize
@@ -31,11 +31,11 @@ default_args = {
 }
 
 
-# dag = DAG(
-#     dag_id=dag_name,
-#     default_args=default_args,
-#     schedule_interval='0 18 * * 1,2,3,4,5'
-# )
+dag = DAG(
+    dag_id=dag_name,
+    default_args=default_args,
+    schedule_interval='0 18 * * 1,2,3,4,5'
+)
 
 
 def update_daily_portfolio(ds, **kwargs):
@@ -144,12 +144,12 @@ def update_daily_portfolio(ds, **kwargs):
     return 0
 
 
-# run_this1 = PythonOperator(
-#     task_id='update_daily_portfolio',
-#     provide_context=True,
-#     python_callable=update_daily_portfolio,
-#     dag=dag
-# )
+run_this1 = PythonOperator(
+    task_id='update_daily_portfolio',
+    provide_context=True,
+    python_callable=update_daily_portfolio,
+    dag=dag
+)
 
 
 if __name__ == '__main__':
