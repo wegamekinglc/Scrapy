@@ -24,7 +24,7 @@ from PyFin.api import advanceDateByCalendar
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
 start_date = dt.datetime(2017, 4, 1)
-dag_name = 'update_daily_portfolio'
+dag_name = 'update_daily_portfolio_mutual_fund'
 
 default_args = {
     'owner': 'wegamekinglc',
@@ -39,7 +39,7 @@ dag = DAG(
 )
 
 
-def update_daily_portfolio(ds, **kwargs):
+def update_daily_portfolio_mutual_fund(ds, **kwargs):
     execution_date = kwargs['next_execution_date']
 
     if not isBizDay('china.sse', execution_date):
@@ -140,12 +140,17 @@ def update_daily_portfolio(ds, **kwargs):
     mask_array3 = total_data.Code.isin(black_list3.S_INFO_WINDCODE)
     ubound[mask_array3.values] = 0.
 
+    # set market segment exposure limit
+    exchange_flag = np.array([1.0 if code > 600000 else 0. for code in total_data.Code])
+
     status, value, ret = linear_build(er,
                                       lbound=lbound,
                                       ubound=ubound,
                                       risk_exposure=risk_exposure,
                                       bm=bm,
                                       risk_target=(lbound_exposure, ubound_exposure),
+                                      exchange_flag=exchange_flag,
+                                      exchange_limit=(0.5 - 1.e-4, 0.5 + 1.e-4),
                                       solver='GLPK')
 
     if status != 'optimal':
@@ -158,7 +163,7 @@ def update_daily_portfolio(ds, **kwargs):
 
         client = pymongo.MongoClient('mongodb://10.63.6.176:27017')
         db = client.multifactor
-        portfolio_collection = db.portfolio
+        portfolio_collection = db.portfolio_mutal_fund
 
         detail_info = {}
         for code, w, bm_w, ind, r in zip(total_data.Code.values, ret, total_data[index_components].values,
@@ -176,17 +181,17 @@ def update_daily_portfolio(ds, **kwargs):
         portfolio_collection.delete_many({'Date': prev_date})
         portfolio_collection.insert_one(portfolio_dict)
 
-        portfolio.to_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')), encoding='gbk')
+        portfolio.to_csv(r'~/mnt/sharespace/personal/licheng/portfolio/zz500_mutual_fund/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')), encoding='gbk')
 
     return 0
 
 
 run_this1 = PythonOperator(
-    task_id='update_daily_portfolio',
+    task_id='update_daily_portfolio_mutual_fund',
     provide_context=True,
-    python_callable=update_daily_portfolio,
+    python_callable=update_daily_portfolio_mutual_fund,
     dag=dag
 )
 
 if __name__ == '__main__':
-    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 17))
+    update_daily_portfolio_mutual_fund(None, next_execution_date=dt.datetime(2017, 5, 17))
