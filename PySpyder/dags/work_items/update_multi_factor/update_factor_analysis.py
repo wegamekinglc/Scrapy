@@ -38,8 +38,8 @@ dag = DAG(
     schedule_interval='0 19 * * 1,2,3,4,5'
 )
 
-source_db = sa.create_engine('mysql+mysqldb://usr:pwd@host/multifactor?charset=utf8')
-destination_db = sa.create_engine('mysql+mysqldb://usr:pwd@host/factor_analysis?charset=utf8')
+source_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
+destination_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/factor_analysis?charset=utf8')
 
 
 def get_industry_codes(ref_date, engine):
@@ -80,7 +80,9 @@ def get_all_the_factors(ref_date, engine, codes):
     total_factors = pd.merge(common_factors, prod_factors, on=['Code'], how='left')
     total_factors = pd.merge(total_factors, common_500, on=['Code'], how='left')
 
-    return total_factors.dropna(axis=1)
+    total_factors.dropna(axis=1, how='all', inplace=True)
+    total_factors.fillna(total_factors.mean(), inplace=True)
+    return total_factors
 
 
 def merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns):
@@ -101,6 +103,7 @@ def process_data(total_data, factor_cols, risk_cols):
     risk_values = total_data[risk_cols].values
     factor_values = total_data[factor_cols].values
     processed_values = np.zeros(factor_values.shape)
+
     for i in range(processed_values.shape[1]):
         try:
             processed_values[:, i] = neutralize(risk_values,
@@ -209,4 +212,4 @@ run_this1 = PythonOperator(
 
 
 if __name__ == '__main__':
-    update_factor_performance(None, next_execution_date=dt.datetime(2012, 1, 4))
+    update_factor_performance(None, next_execution_date=dt.datetime(2016, 1, 4))
