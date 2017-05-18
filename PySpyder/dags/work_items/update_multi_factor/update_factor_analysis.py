@@ -38,8 +38,8 @@ dag = DAG(
     schedule_interval='0 19 * * 1,2,3,4,5'
 )
 
-source_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
-destination_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/factor_analysis?charset=utf8')
+source_db = sa.create_engine('mysql+mysqldb://user:pwd@host/multifactor?charset=utf8')
+destination_db = sa.create_engine('mysql+mysqldb://user:pwd@host/factor_analysis?charset=utf8')
 
 
 def get_industry_codes(ref_date, engine):
@@ -65,19 +65,36 @@ def get_index_components(ref_date, engine):
     return df[['Code', 'zz500']]
 
 
-def get_all_the_factors(ref_date, engine, codes):
-    codes_list = ','.join([str(c) for c in codes])
-    common_factors = pd.read_sql("select * from factor_data where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
-    del common_factors['Date']
-    del common_factors['申万一级行业']
-    del common_factors['申万二级行业']
-    del common_factors['申万三级行业']
-    prod_factors = pd.read_sql("select * from prod_500 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
-    del prod_factors['Date']
-    common_500 = pd.read_sql("select * from common_500 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
-    del common_500['Date']
+def get_all_the_factors(ref_date, engine, codes=None):
+    if codes:
+        codes_list = ','.join([str(c) for c in codes])
+    else:
+        codes_list = None
+    if codes_list:
+        common_factors = pd.read_sql("select * from factor_data where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
+        del common_factors['Date']
+        del common_factors['申万一级行业']
+        del common_factors['申万二级行业']
+        del common_factors['申万三级行业']
+        prod_factors = pd.read_sql("select * from prod_500 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
+        del prod_factors['Date']
+        common_500 = pd.read_sql("select * from common_500 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
+        del common_500['Date']
+    else:
+        common_factors = pd.read_sql(
+            "select * from factor_data where Date = '{0}'".format(ref_date, codes_list), engine)
+        del common_factors['Date']
+        del common_factors['申万一级行业']
+        del common_factors['申万二级行业']
+        del common_factors['申万三级行业']
+        prod_factors = pd.read_sql(
+            "select * from prod_500 where Date = '{0}'".format(ref_date), engine)
+        del prod_factors['Date']
+        common_500 = pd.read_sql(
+            "select * from common_500 where Date = '{0}'".format(ref_date), engine)
+        del common_500['Date']
 
-    total_factors = pd.merge(common_factors, prod_factors, on=['Code'], how='left')
+    total_factors = pd.merge(prod_factors, common_factors, on=['Code'], how='left')
     total_factors = pd.merge(total_factors, common_500, on=['Code'], how='left')
 
     total_factors.dropna(axis=1, how='all', inplace=True)
@@ -87,9 +104,10 @@ def get_all_the_factors(ref_date, engine, codes):
 
 def merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns):
     factor_cols = total_factors.columns[2:].tolist()
-    total_data = pd.merge(total_factors, industry_codes, on=['Code'])
+    total_data = pd.merge(total_factors, index_components, on=['Code'], how='left')
+    total_data.fillna(0, inplace=True)
+    total_data = pd.merge(total_data, industry_codes, on=['Code'])
     total_data = pd.merge(total_data, risk_factors, on=['Code'])
-    total_data = pd.merge(total_data, index_components, on=['Code'])
     total_data = pd.merge(total_data, daily_returns, on=['Code'])
     total_data.dropna(inplace=True)
 
@@ -159,12 +177,17 @@ def upload(ref_date, return_table, engine):
     return_table.to_sql('performance', engine, if_exists='append', index=False)
 
 
-def create_ond_day_pos(query_date, engine):
+def create_ond_day_pos(query_date, engine, big_universe=False):
     industry_codes = get_industry_codes(query_date, engine)
     risk_cols, risk_factors = get_risk_factors(query_date, engine)
     index_components = get_index_components(query_date, engine)
     daily_returns = get_security_returns(query_date, engine)
-    total_factors = get_all_the_factors(query_date, engine, index_components.Code)
+
+    if big_universe:
+        total_factors = get_all_the_factors(query_date, engine)
+    else:
+        total_factors = get_all_the_factors(query_date, engine, index_components.Code.tolist())
+
     factor_cols, total_data = merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns)
     processed_values = process_data(total_data, factor_cols, risk_cols)
 
@@ -203,6 +226,37 @@ def update_factor_performance(ds, **kwargs):
     upload(ref_date, return_table, destination_db)
 
 
+def update_factor_performance_big_universe(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = advanceDateByCalendar('china.sse', ref_date, '-2b')
+    ref_date = ref_date.strftime('%Y-%m-%d')
+    previous_date = advanceDateByCalendar('china.sse', ref_date, '-1b')
+
+    this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, big_universe=True)
+    last_day_pos, _ = create_ond_day_pos(previous_date, source_db, big_universe=True)
+
+    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+
+    pos_diff_dict = {}
+
+    for name in this_day_pos:
+        pos_series = this_day_pos[name]
+        if name in last_day_pos:
+            last_series = last_day_pos[name]
+            pos_diff = pos_series.sub(last_series, fill_value=0)
+        else:
+            pos_diff = pos_series
+        pos_diff_dict[name] = pos_diff.abs().sum()
+
+    pos_diff_series = pd.Series(pos_diff_dict)
+    return_table['turn_over'] = pos_diff_series[return_table.portfolio].values
+    upload(ref_date, return_table, destination_db)
+
+
 run_this1 = PythonOperator(
     task_id='update_factor_performance',
     provide_context=True,
@@ -211,5 +265,12 @@ run_this1 = PythonOperator(
 )
 
 
+run_this1 = PythonOperator(
+    task_id='update_factor_performance_big_universe',
+    provide_context=True,
+    python_callable=update_factor_performance_big_universe,
+    dag=dag
+)
+
 if __name__ == '__main__':
-    update_factor_performance(None, next_execution_date=dt.datetime(2016, 1, 4))
+    update_factor_performance_big_universe(None, next_execution_date=dt.datetime(2017, 5, 17))
