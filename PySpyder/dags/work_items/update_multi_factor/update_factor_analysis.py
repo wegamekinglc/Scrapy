@@ -92,7 +92,7 @@ def merge_data(total_factors, industry_codes, risk_factors, index_components, da
     total_data.dropna(inplace=True)
 
     if len(total_data) < 500:
-        raise ValueError('Data is missing for some codes')
+        logger.warning('Data is missing for some codes')
 
     return factor_cols, total_data
 
@@ -143,8 +143,10 @@ def build_portfolio(er_values, total_data, factor_cols, risk_cols):
 
 def settlement(ref_date, pos_df, bm, returns, type='risk_neutral'):
     ret_series = [(pos_df[name].values - bm) @ returns for name in pos_df.columns]
+    ic_series = [np.corrcoef((pos_df[name].values - bm), returns)[0, 1] for name in pos_df.columns]
     return pd.DataFrame({'Date': ref_date,
                          'er': ret_series,
+                         'ic': ic_series,
                          'portfolio': pos_df.columns,
                          'type': type})
 
