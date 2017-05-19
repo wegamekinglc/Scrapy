@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2017-5-17
+Created on 2017-5-19
 
 @author: cheng.li
 """
@@ -24,7 +24,7 @@ logger = CustomLogger('MULTI_FACTOR', 'info')
 
 
 start_date = dt.datetime(2012, 1, 1)
-dag_name = 'update_factor_analysis'
+dag_name = 'update_factor_analysis_uqer'
 
 default_args = {
     'owner': 'wegamekinglc',
@@ -37,6 +37,7 @@ dag = DAG(
     default_args=default_args,
     schedule_interval='0 19 * * 1,2,3,4,5'
 )
+
 
 source_db = sa.create_engine('mysql+mysqldb://user:pwd@host/multifactor?charset=utf8')
 destination_db = sa.create_engine('mysql+mysqldb://user:pwd@host/factor_analysis?charset=utf8')
@@ -71,31 +72,10 @@ def get_all_the_factors(ref_date, engine, codes=None):
     else:
         codes_list = None
     if codes_list:
-        common_factors = pd.read_sql("select * from factor_data where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
-        del common_factors['Date']
-        del common_factors['申万一级行业']
-        del common_factors['申万二级行业']
-        del common_factors['申万三级行业']
-        prod_factors = pd.read_sql("select * from prod_500 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
-        del prod_factors['Date']
-        common_500 = pd.read_sql("select * from common_500 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
-        del common_500['Date']
+        total_factors = pd.read_sql("select * from factor_uqer where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
+        del total_factors['Date']
     else:
-        common_factors = pd.read_sql(
-            "select * from factor_data where Date = '{0}'".format(ref_date, codes_list), engine)
-        del common_factors['Date']
-        del common_factors['申万一级行业']
-        del common_factors['申万二级行业']
-        del common_factors['申万三级行业']
-        prod_factors = pd.read_sql(
-            "select * from prod_500 where Date = '{0}'".format(ref_date), engine)
-        del prod_factors['Date']
-        common_500 = pd.read_sql(
-            "select * from common_500 where Date = '{0}'".format(ref_date), engine)
-        del common_500['Date']
-
-    total_factors = pd.merge(prod_factors, common_factors, on=['Code'], how='left')
-    total_factors = pd.merge(total_factors, common_500, on=['Code'], how='left')
+        total_factors = pd.read_sql("select * from factor_uqer where Date = '{0}'".format(ref_date), engine)
 
     total_factors.dropna(axis=1, how='all', inplace=True)
     total_factors.fillna(total_factors.mean(), inplace=True)
@@ -223,7 +203,7 @@ def update_factor_performance(ds, **kwargs):
 
     pos_diff_series = pd.Series(pos_diff_dict)
     return_table['turn_over'] = pos_diff_series[return_table.portfolio].values
-    upload(ref_date, return_table, destination_db, 'performance')
+    upload(ref_date, return_table, destination_db, 'performance_uqer')
 
 
 def update_factor_performance_big_universe(ds, **kwargs):
@@ -254,7 +234,7 @@ def update_factor_performance_big_universe(ds, **kwargs):
 
     pos_diff_series = pd.Series(pos_diff_dict)
     return_table['turn_over'] = pos_diff_series[return_table.portfolio].values
-    upload(ref_date, return_table, destination_db, 'performance_big_universe')
+    upload(ref_date, return_table, destination_db, 'performance_big_universe_uqer')
 
 
 run_this1 = PythonOperator(
