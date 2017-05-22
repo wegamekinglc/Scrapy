@@ -20,6 +20,22 @@ from alphamind.data.winsorize import winsorize_normal
 from alphamind.data.neutralize import neutralize
 from alphamind.portfolio.linearbuilder import linear_build
 
+
+factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
+factor_weights = factor_weights / factor_weights.sum()
+
+
+alpha_strategy = {
+    'strategy1': {
+        'EPSAfterNonRecurring': factor_weights[0],
+        'DivP': factor_weights[1],
+        'CFinc1': factor_weights[2],
+        'BDTO': factor_weights[3],
+        'RVOL': factor_weights[4],
+    }
+}
+
+
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
 
@@ -37,6 +53,7 @@ dag = DAG(
     default_args=default_args,
     schedule_interval='0 19 * * 1,2,3,4,5'
 )
+
 
 source_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
 destination_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/factor_analysis?charset=utf8')
@@ -159,6 +176,23 @@ def build_portfolio(er_values, total_data, factor_cols, risk_cols):
         else:
             factor_pos[name] = ret
 
+    for name in alpha_strategy:
+        er = np.zeros(len(total_data))
+        for f in alpha_strategy[name]:
+            er += alpha_strategy[name][f] * total_data[f].values
+
+        status, value, ret = linear_build(er,
+                                          lbound=lbound,
+                                          ubound=ubound,
+                                          risk_exposure=risk_exposure,
+                                          bm=bm,
+                                          risk_target=(lbound_exposure, ubound_exposure),
+                                          solver='GLPK')
+        if status != 'optimal':
+            raise ValueError('target is not feasible')
+        else:
+            factor_pos[name] = ret
+
     res = pd.DataFrame(factor_pos, index=total_data.Code)
     res['industry'] = total_data['申万一级行业'].values
 
@@ -212,6 +246,7 @@ def create_ond_day_pos(query_date, engine, big_universe=False):
 
     factor_cols, total_data = merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns)
     processed_values = process_data(total_data, factor_cols, risk_cols)
+    total_data[factor_cols] = processed_values
 
     pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols)
     return pos_df, total_data

@@ -20,6 +20,9 @@ from alphamind.data.winsorize import winsorize_normal
 from alphamind.data.neutralize import neutralize
 from alphamind.portfolio.linearbuilder import linear_build
 
+alpha_strategy = {}
+
+
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
 
@@ -139,6 +142,23 @@ def build_portfolio(er_values, total_data, factor_cols, risk_cols):
         else:
             factor_pos[name] = ret
 
+    for name in alpha_strategy:
+        er = np.zeros(len(total_data))
+        for f in alpha_strategy[name]:
+            er += alpha_strategy[name][f] * total_data[f].values
+
+        status, value, ret = linear_build(er,
+                                          lbound=lbound,
+                                          ubound=ubound,
+                                          risk_exposure=risk_exposure,
+                                          bm=bm,
+                                          risk_target=(lbound_exposure, ubound_exposure),
+                                          solver='GLPK')
+        if status != 'optimal':
+            raise ValueError('target is not feasible')
+        else:
+            factor_pos[name] = ret
+
     res = pd.DataFrame(factor_pos, index=total_data.Code)
     res['industry'] = total_data['申万一级行业'].values
 
@@ -191,6 +211,7 @@ def create_ond_day_pos(query_date, engine, big_universe=False):
 
     factor_cols, total_data = merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns)
     processed_values = process_data(total_data, factor_cols, risk_cols)
+    total_data[factor_cols] = processed_values
 
     pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols)
     return pos_df, total_data
