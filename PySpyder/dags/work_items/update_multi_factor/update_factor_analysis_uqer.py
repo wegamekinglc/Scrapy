@@ -32,11 +32,11 @@ default_args = {
     'start_date': start_date
 }
 
-# dag = DAG(
-#     dag_id=dag_name,
-#     default_args=default_args,
-#     schedule_interval='0 19 * * 1,2,3,4,5'
-# )
+dag = DAG(
+    dag_id=dag_name,
+    default_args=default_args,
+    schedule_interval='0 19 * * 1,2,3,4,5'
+)
 
 
 source_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
