@@ -131,7 +131,7 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     # get black list 3
     black_list3 = pd.read_sql("SELECT S_INFO_WINDCODE, S_DQ_SUSPENDDATE FROM ASHARETRADINGSUSPENSION AS a "
                               "WHERE a.S_DQ_SUSPENDDATE = (SELECT top 1 S_DQ_SUSPENDDATE FROM ASHARETRADINGSUSPENSION AS b "
-                              "WHERE a.S_INFO_WINDCODE=b.S_INFO_WINDCODE and cast(floor(cast(a.OPDATE as float)) as datetime) <= '{0}' ORDER BY b.S_DQ_SUSPENDDATE DESC) "
+                              "WHERE a.S_INFO_WINDCODE=b.S_INFO_WINDCODE and cast(floor(cast(b.OPDATE as float)) as datetime) <= '{0}' ORDER BY b.S_DQ_SUSPENDDATE DESC) "
                               "AND a.S_INFO_WINDCODE IN (SELECT S_INFO_WINDCODE FROM ASHAREDESCRIPTION AS c "
                               "WHERE c.S_INFO_DELISTDATE IS NULL) AND (a.S_DQ_SUSPENDDATE>='{1}' OR (a.S_DQ_RESUMPDATE IS NULL AND a.S_DQ_SUSPENDTYPE=444003000))"
                               .format(execution_date, execution_date.strftime('%Y%m%d')),
