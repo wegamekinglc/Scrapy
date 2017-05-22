@@ -32,15 +32,15 @@ default_args = {
     'start_date': start_date
 }
 
-dag = DAG(
-    dag_id=dag_name,
-    default_args=default_args,
-    schedule_interval='0 19 * * 1,2,3,4,5'
-)
+# dag = DAG(
+#     dag_id=dag_name,
+#     default_args=default_args,
+#     schedule_interval='0 19 * * 1,2,3,4,5'
+# )
 
 
-source_db = sa.create_engine('mysql+mysqldb://user:pwd@host/multifactor?charset=utf8')
-destination_db = sa.create_engine('mysql+mysqldb://user:pwd@host/factor_analysis?charset=utf8')
+source_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
+destination_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/factor_analysis?charset=utf8')
 
 
 def get_industry_codes(ref_date, engine):
@@ -83,7 +83,7 @@ def get_all_the_factors(ref_date, engine, codes=None):
 
 
 def merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns):
-    factor_cols = total_factors.columns[2:].tolist()
+    factor_cols = total_factors.columns.difference(['Date', '申万一级行业'])
     total_data = pd.merge(total_factors, index_components, on=['Code'], how='left')
     total_data.fillna(0, inplace=True)
     total_data = pd.merge(total_data, industry_codes, on=['Code'])
@@ -139,17 +139,38 @@ def build_portfolio(er_values, total_data, factor_cols, risk_cols):
         else:
             factor_pos[name] = ret
 
-    return pd.DataFrame(factor_pos, index=total_data.Code)
+    res = pd.DataFrame(factor_pos, index=total_data.Code)
+    res['industry'] = total_data['申万一级行业'].values
+
+    return res
 
 
 def settlement(ref_date, pos_df, bm, returns, type='risk_neutral'):
-    ret_series = [(pos_df[name].values - bm) @ returns for name in pos_df.columns]
-    ic_series = [np.corrcoef((pos_df[name].values - bm), returns)[0, 1] for name in pos_df.columns]
-    return pd.DataFrame({'Date': ref_date,
-                         'er': ret_series,
-                         'ic': ic_series,
-                         'portfolio': pos_df.columns,
-                         'type': type})
+    inds = pos_df['industry']
+    pos_df = pos_df[pos_df.columns.difference(['industry'])]
+
+    ret_table = pos_df.sub(bm, axis=0).multiply(returns, axis=0)
+    ret_aggregate = ret_table.groupby(inds).sum()
+    ret_aggregate.loc['total', :] = ret_aggregate.sum().values
+    ret_aggregate = ret_aggregate.stack()
+    ret_aggregate.index.names = ['industry', 'portfolio']
+    ret_aggregate.name = 'er'
+
+    pos_table_with_returns = pos_df.sub(bm, axis=0)
+    pos_table_with_returns['ret'] = returns
+    ic_table = pos_table_with_returns.groupby(inds).corr()['ret']
+    ic_table = ic_table.unstack(level=1)
+    total_ic = pos_table_with_returns.corr()['ret']
+    ic_table.loc['total', total_ic.index] = total_ic.values
+    del ic_table['ret']
+    ic_table = ic_table.stack()
+    ic_table.index.names = ['industry', 'portfolio']
+    ic_table.name = 'ic'
+
+    res = pd.merge(ret_aggregate.reset_index(), ic_table.reset_index(), on=['industry', 'portfolio'])
+    res['type'] = type
+    res['Date'] = ref_date
+    return res
 
 
 def upload(ref_date, return_table, engine, table):
@@ -192,17 +213,29 @@ def update_factor_performance(ds, **kwargs):
 
     pos_diff_dict = {}
 
-    for name in this_day_pos:
+    for name in this_day_pos.columns.difference(['industry']):
+        for ind in this_day_pos.industry.unique():
+            pos_series = this_day_pos.loc[this_day_pos.industry == ind, name]
+            if name in last_day_pos:
+                last_series = last_day_pos.loc[last_day_pos.industry == ind, name]
+                pos_diff = pos_series.sub(last_series, fill_value=0)
+            else:
+                pos_diff = pos_series
+            pos_diff_dict[(name, ind)] = pos_diff.abs().sum()
+
         pos_series = this_day_pos[name]
         if name in last_day_pos:
             last_series = last_day_pos[name]
             pos_diff = pos_series.sub(last_series, fill_value=0)
         else:
             pos_diff = pos_series
-        pos_diff_dict[name] = pos_diff.abs().sum()
+        pos_diff_dict[(name, 'total')] = pos_diff.abs().sum()
 
-    pos_diff_series = pd.Series(pos_diff_dict)
-    return_table['turn_over'] = pos_diff_series[return_table.portfolio].values
+    pos_diff_series = pd.Series(pos_diff_dict, name='turn_over')
+    pos_diff_series.index.names = ['portfolio', 'industry']
+    pos_diff_series = pos_diff_series.reset_index()
+
+    return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
     upload(ref_date, return_table, destination_db, 'performance_uqer')
 
 
@@ -223,17 +256,29 @@ def update_factor_performance_big_universe(ds, **kwargs):
 
     pos_diff_dict = {}
 
-    for name in this_day_pos:
+    for name in this_day_pos.columns.difference(['industry']):
+        for ind in this_day_pos.industry.unique():
+            pos_series = this_day_pos.loc[this_day_pos.industry == ind, name]
+            if name in last_day_pos:
+                last_series = last_day_pos.loc[last_day_pos.industry == ind, name]
+                pos_diff = pos_series.sub(last_series, fill_value=0)
+            else:
+                pos_diff = pos_series
+            pos_diff_dict[(name, ind)] = pos_diff.abs().sum()
+
         pos_series = this_day_pos[name]
         if name in last_day_pos:
             last_series = last_day_pos[name]
             pos_diff = pos_series.sub(last_series, fill_value=0)
         else:
             pos_diff = pos_series
-        pos_diff_dict[name] = pos_diff.abs().sum()
+        pos_diff_dict[(name, 'total')] = pos_diff.abs().sum()
 
-    pos_diff_series = pd.Series(pos_diff_dict)
-    return_table['turn_over'] = pos_diff_series[return_table.portfolio].values
+    pos_diff_series = pd.Series(pos_diff_dict, name='turn_over')
+    pos_diff_series.index.names = ['portfolio', 'industry']
+    pos_diff_series = pos_diff_series.reset_index()
+
+    return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
     upload(ref_date, return_table, destination_db, 'performance_big_universe_uqer')
 
 
@@ -253,4 +298,4 @@ run_this2 = PythonOperator(
 )
 
 if __name__ == '__main__':
-    update_factor_performance_big_universe(None, next_execution_date=dt.datetime(2017, 5, 17))
+    update_factor_performance(None, next_execution_date=dt.datetime(2017, 1, 6))
