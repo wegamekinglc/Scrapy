@@ -86,7 +86,7 @@ def get_all_the_factors(ref_date, engine, codes=None):
 
 
 def merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns):
-    factor_cols = total_factors.columns.difference(['Date', '申万一级行业'])
+    factor_cols = total_factors.columns.difference(['Date', 'Code', '申万一级行业'])
     total_data = pd.merge(total_factors, index_components, on=['Code'], how='left')
     total_data.fillna(0, inplace=True)
     total_data = pd.merge(total_data, industry_codes, on=['Code'])
