@@ -9,8 +9,8 @@ import datetime as dt
 import sqlalchemy as sa
 import numpy as np
 import pandas as pd
-# from airflow.operators.python_operator import PythonOperator
-# from airflow.models import DAG
+from airflow.operators.python_operator import PythonOperator
+from airflow.models import DAG
 from PyFin.api import isBizDay
 from PyFin.api import advanceDateByCalendar
 from simpleutils import CustomLogger
@@ -48,11 +48,11 @@ default_args = {
     'start_date': start_date
 }
 
-# dag = DAG(
-#     dag_id=dag_name,
-#     default_args=default_args,
-#     schedule_interval='0 19 * * 1,2,3,4,5'
-# )
+dag = DAG(
+    dag_id=dag_name,
+    default_args=default_args,
+    schedule_interval='0 19 * * 1,2,3,4,5'
+)
 
 
 source_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
@@ -338,20 +338,20 @@ def update_factor_performance_big_universe(ds, **kwargs):
     upload(ref_date, return_table, destination_db, 'performance_big_universe')
 
 
-# run_this1 = PythonOperator(
-#     task_id='update_factor_performance',
-#     provide_context=True,
-#     python_callable=update_factor_performance,
-#     dag=dag
-# )
-#
-#
-# run_this2 = PythonOperator(
-#     task_id='update_factor_performance_big_universe',
-#     provide_context=True,
-#     python_callable=update_factor_performance_big_universe,
-#     dag=dag
-# )
+run_this1 = PythonOperator(
+    task_id='update_factor_performance',
+    provide_context=True,
+    python_callable=update_factor_performance,
+    dag=dag
+)
+
+
+run_this2 = PythonOperator(
+    task_id='update_factor_performance_big_universe',
+    provide_context=True,
+    python_callable=update_factor_performance_big_universe,
+    dag=dag
+)
 
 
 if __name__ == '__main__':
