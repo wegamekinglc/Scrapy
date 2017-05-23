@@ -140,6 +140,17 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     mask_array3 = total_data.Code.isin(black_list3.S_INFO_WINDCODE)
     ubound[mask_array3.values] = 0.
 
+    # manual black list
+    try:
+        bk_list = pd.read_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500_mutual_fund_black_list/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')),
+                              encoding='gbk',
+                              names=['code'])
+        logger.info('Manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+        for code in bk_list['code']:
+            ubound[total_data.Code == int(code)] = 0.
+    except FileNotFoundError:
+        logger.info('No manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+
     # set market segment exposure limit
     exchange_flag = np.array([1.0 if code > 600000 else 0. for code in total_data.Code])
 
@@ -181,7 +192,7 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
         portfolio_collection.delete_many({'Date': prev_date})
         portfolio_collection.insert_one(portfolio_dict)
 
-        portfolio.to_csv(r'~/mnt/sharespace/personal/licheng/portfolio/zz500_mutual_fund/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')), encoding='gbk')
+        portfolio.to_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500_mutual_fund/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')), encoding='gbk')
 
     return 0
 

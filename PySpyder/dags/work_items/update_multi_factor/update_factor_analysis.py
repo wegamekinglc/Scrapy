@@ -353,5 +353,6 @@ run_this2 = PythonOperator(
     dag=dag
 )
 
+
 if __name__ == '__main__':
     update_factor_performance(None, next_execution_date=dt.datetime(2017, 1, 5))

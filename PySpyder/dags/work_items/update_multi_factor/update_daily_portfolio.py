@@ -140,6 +140,18 @@ def update_daily_portfolio(ds, **kwargs):
     mask_array3 = total_data.Code.isin(black_list3.S_INFO_WINDCODE)
     ubound[mask_array3.values] = 0.
 
+    # manual black list
+    try:
+        bk_list = pd.read_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500_black_list/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')),
+
+                              encoding='gbk',
+                              names=['code'])
+        logger.info('Manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+        for code in bk_list['code']:
+            ubound[total_data.Code == int(code)] = 0.
+    except FileNotFoundError:
+        logger.info('No manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+
     status, value, ret = linear_build(er,
                                       lbound=lbound,
                                       ubound=ubound,
@@ -189,4 +201,4 @@ run_this1 = PythonOperator(
 )
 
 if __name__ == '__main__':
-    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 16))
+    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 23))
