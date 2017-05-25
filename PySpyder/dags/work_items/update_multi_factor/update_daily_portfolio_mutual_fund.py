@@ -145,11 +145,11 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
         bk_list = pd.read_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500_mutual_fund_black_list/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')),
                               encoding='gbk',
                               names=['code'])
-        logger.info('Manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+        logger.info('Manual black list exists for the date: {0}'.format(prev_date.strftime('%Y-%m-%d')))
         for code in bk_list['code']:
             ubound[total_data.Code == int(code)] = 0.
     except FileNotFoundError:
-        logger.info('No manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+        logger.info('No manual black list exists for the date: {0}'.format(prev_date.strftime('%Y-%m-%d')))
 
     # set market segment exposure limit
     exchange_flag = np.array([1.0 if code > 600000 else 0. for code in total_data.Code])

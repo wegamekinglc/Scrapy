@@ -10,8 +10,8 @@ import numpy as np
 import sqlalchemy
 import pandas as pd
 import pymongo
-from airflow.operators.python_operator import PythonOperator
-from airflow.models import DAG
+# from airflow.operators.python_operator import PythonOperator
+# from airflow.models import DAG
 from alphamind.examples.config import risk_factors_500
 from alphamind.data.standardize import standardize
 from alphamind.data.neutralize import neutralize
@@ -32,11 +32,11 @@ default_args = {
     'start_date': start_date
 }
 
-dag = DAG(
-    dag_id=dag_name,
-    default_args=default_args,
-    schedule_interval='0 8 * * 1,2,3,4,5'
-)
+# dag = DAG(
+#     dag_id=dag_name,
+#     default_args=default_args,
+#     schedule_interval='0 8 * * 1,2,3,4,5'
+# )
 
 
 def update_daily_portfolio(ds, **kwargs):
@@ -143,14 +143,13 @@ def update_daily_portfolio(ds, **kwargs):
     # manual black list
     try:
         bk_list = pd.read_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500_black_list/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')),
-
                               encoding='gbk',
                               names=['code'])
-        logger.info('Manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+        logger.info('Manual black list exists for the date: {0}'.format(prev_date.strftime('%Y-%m-%d')))
         for code in bk_list['code']:
             ubound[total_data.Code == int(code)] = 0.
     except FileNotFoundError:
-        logger.info('No manual black list exists for the date: {0}'.fromat(prev_date.strftime('%Y-%m-%d')))
+        logger.info('No manual black list exists for the date: {0}'.format(prev_date.strftime('%Y-%m-%d')))
 
     status, value, ret = linear_build(er,
                                       lbound=lbound,
@@ -193,12 +192,12 @@ def update_daily_portfolio(ds, **kwargs):
     return 0
 
 
-run_this1 = PythonOperator(
-    task_id='update_daily_portfolio',
-    provide_context=True,
-    python_callable=update_daily_portfolio,
-    dag=dag
-)
+# run_this1 = PythonOperator(
+#     task_id='update_daily_portfolio',
+#     provide_context=True,
+#     python_callable=update_daily_portfolio,
+#     dag=dag
+# )
 
 if __name__ == '__main__':
-    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 23))
+    update_daily_portfolio(None, next_execution_date=dt.datetime(2017, 5, 24))

@@ -149,12 +149,12 @@ def process_data(total_data, factor_cols, risk_cols):
     return processed_values
 
 
-def build_portfolio(er_values, total_data, factor_cols, risk_cols):
+def build_portfolio(er_values, total_data, factor_cols, risk_cols, risk_lbound, risk_ubound):
     bm = total_data['zz500'].values
     lbound = np.zeros(len(bm))
     ubound = 0.01 + bm
-    lbound_exposure = -0.01
-    ubound_exposure = 0.01
+    lbound_exposure = risk_lbound
+    ubound_exposure = risk_ubound
     risk_exposure = total_data[risk_cols].values
 
     is_trading = total_data['isTradable'].values
@@ -228,12 +228,12 @@ def settlement(ref_date, pos_df, bm, returns, type='risk_neutral'):
     return res
 
 
-def upload(ref_date, return_table, engine, table):
-    engine.execute("delete from {1} where Date = '{0}'".format(ref_date, table))
+def upload(ref_date, return_table, engine, table, build_type):
+    engine.execute("delete from {1} where Date = '{0}' and type = '{2}'".format(ref_date, table, build_type))
     return_table.to_sql(table, engine, if_exists='append', index=False)
 
 
-def create_ond_day_pos(query_date, engine, big_universe=False):
+def create_ond_day_pos(query_date, engine, big_universe=False, risk_neutral=True):
     industry_codes = get_industry_codes(query_date, engine)
     risk_cols, risk_factors = get_risk_factors(query_date, engine)
     index_components = get_index_components(query_date, engine)
@@ -247,8 +247,11 @@ def create_ond_day_pos(query_date, engine, big_universe=False):
     factor_cols, total_data = merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns)
     processed_values = process_data(total_data, factor_cols, risk_cols)
     total_data[factor_cols] = processed_values
-
-    pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols)
+    
+    if risk_neutral:
+        pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols, -0.01, 0.01)
+    else:
+        pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols, -1., 1.)
     return pos_df, total_data
 
 
@@ -292,7 +295,50 @@ def update_factor_performance(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance')
+    upload(ref_date, return_table, destination_db, 'performance', 'risk_neutral')
+
+
+def update_factor_performance_top_player(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = advanceDateByCalendar('china.sse', ref_date, '-2b')
+    ref_date = ref_date.strftime('%Y-%m-%d')
+    previous_date = advanceDateByCalendar('china.sse', ref_date, '-1b')
+
+    this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, risk_neutral=False)
+    last_day_pos, _ = create_ond_day_pos(previous_date, source_db, risk_neutral=False)
+
+    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+
+    pos_diff_dict = {}
+
+    for name in this_day_pos.columns.difference(['industry']):
+        for ind in this_day_pos.industry.unique():
+            pos_series = this_day_pos.loc[this_day_pos.industry == ind, name]
+            if name in last_day_pos:
+                last_series = last_day_pos.loc[last_day_pos.industry == ind, name]
+                pos_diff = pos_series.sub(last_series, fill_value=0)
+            else:
+                pos_diff = pos_series
+            pos_diff_dict[(name, ind)] = pos_diff.abs().sum()
+
+        pos_series = this_day_pos[name]
+        if name in last_day_pos:
+            last_series = last_day_pos[name]
+            pos_diff = pos_series.sub(last_series, fill_value=0)
+        else:
+            pos_diff = pos_series
+        pos_diff_dict[(name, 'total')] = pos_diff.abs().sum()
+
+    pos_diff_series = pd.Series(pos_diff_dict, name='turn_over')
+    pos_diff_series.index.names = ['portfolio', 'industry']
+    pos_diff_series = pos_diff_series.reset_index()
+
+    return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
+    upload(ref_date, return_table, destination_db, 'performance', 'top_player')
 
 
 def update_factor_performance_big_universe(ds, **kwargs):
@@ -335,7 +381,50 @@ def update_factor_performance_big_universe(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_big_universe')
+    upload(ref_date, return_table, destination_db, 'performance_big_universe', 'risk_neutral')
+
+
+def update_factor_performance_big_universe_top_player(ds, **kwargs):
+    ref_date = kwargs['next_execution_date']
+    if not isBizDay('china.sse', ref_date):
+        logger.info("{0} is not a business day".format(ref_date))
+        return 0
+
+    ref_date = advanceDateByCalendar('china.sse', ref_date, '-2b')
+    ref_date = ref_date.strftime('%Y-%m-%d')
+    previous_date = advanceDateByCalendar('china.sse', ref_date, '-1b')
+
+    this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, big_universe=True, risk_neutral=False)
+    last_day_pos, _ = create_ond_day_pos(previous_date, source_db, big_universe=True, risk_neutral=False)
+
+    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+
+    pos_diff_dict = {}
+
+    for name in this_day_pos.columns.difference(['industry']):
+        for ind in this_day_pos.industry.unique():
+            pos_series = this_day_pos.loc[this_day_pos.industry == ind, name]
+            if name in last_day_pos:
+                last_series = last_day_pos.loc[last_day_pos.industry == ind, name]
+                pos_diff = pos_series.sub(last_series, fill_value=0)
+            else:
+                pos_diff = pos_series
+            pos_diff_dict[(name, ind)] = pos_diff.abs().sum()
+
+        pos_series = this_day_pos[name]
+        if name in last_day_pos:
+            last_series = last_day_pos[name]
+            pos_diff = pos_series.sub(last_series, fill_value=0)
+        else:
+            pos_diff = pos_series
+        pos_diff_dict[(name, 'total')] = pos_diff.abs().sum()
+
+    pos_diff_series = pd.Series(pos_diff_dict, name='turn_over')
+    pos_diff_series.index.names = ['portfolio', 'industry']
+    pos_diff_series = pos_diff_series.reset_index()
+
+    return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
+    upload(ref_date, return_table, destination_db, 'performance_big_universe', 'top_player')
 
 
 run_this1 = PythonOperator(
@@ -350,6 +439,22 @@ run_this2 = PythonOperator(
     task_id='update_factor_performance_big_universe',
     provide_context=True,
     python_callable=update_factor_performance_big_universe,
+    dag=dag
+)
+
+
+run_this3 = PythonOperator(
+    task_id='update_factor_performance_top_player',
+    provide_context=True,
+    python_callable=update_factor_performance_top_player,
+    dag=dag
+)
+
+
+run_this4 = PythonOperator(
+    task_id='update_factor_performance_big_universe_top_player',
+    provide_context=True,
+    python_callable=update_factor_performance_big_universe_top_player,
     dag=dag
 )
 

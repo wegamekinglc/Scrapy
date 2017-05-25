@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2017-5-19
+Created on 2017-5-17
 
 @author: cheng.li
 """
@@ -14,20 +14,33 @@ from airflow.models import DAG
 from PyFin.api import isBizDay
 from PyFin.api import advanceDateByCalendar
 from simpleutils import CustomLogger
-from alphamind.examples.config import risk_factors_500
+from alphamind.examples.config import risk_factors_300
 from alphamind.data.standardize import standardize
 from alphamind.data.winsorize import winsorize_normal
 from alphamind.data.neutralize import neutralize
 from alphamind.portfolio.linearbuilder import linear_build
 
-alpha_strategy = {}
+
+factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
+factor_weights = factor_weights / factor_weights.sum()
+
+
+alpha_strategy = {
+    'strategy1': {
+        'EPSAfterNonRecurring': factor_weights[0],
+        'DivP': factor_weights[1],
+        'CFinc1': factor_weights[2],
+        'BDTO': factor_weights[3],
+        'RVOL': factor_weights[4],
+    }
+}
 
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
 
-start_date = dt.datetime(2017, 1, 5)
-dag_name = 'update_factor_analysis_uqer'
+start_date = dt.datetime(2012, 1, 1)
+dag_name = 'update_factor_analysis_300'
 
 default_args = {
     'owner': 'wegamekinglc',
@@ -51,22 +64,22 @@ def get_industry_codes(ref_date, engine):
 
 
 def get_risk_factors(ref_date, engine):
-    risk_factor_list = ','.join(risk_factors_500)
-    risk_factors = pd.read_sql("select Code, {0} from risk_factor_500 where Date = '{1}'".format(risk_factor_list, ref_date), engine)
+    risk_factor_list = ','.join(risk_factors_300)
+    risk_factors = pd.read_sql("select Code, {0} from risk_factor_300 where Date = '{1}'".format(risk_factor_list, ref_date), engine)
     risk_factors['Market'] = 1.
-    risk_cols = risk_factors_500 + ['Market']
+    risk_cols = risk_factors_300 + ['Market']
     return risk_cols, risk_factors
 
 
 def get_security_returns(ref_date, engine):
-    return pd.read_sql("select Code, D1LogReturn, isTradable from return_500 where Date = '{0}'".format(ref_date), engine)
+    return pd.read_sql("select Code, D1LogReturn, isTradable from return_300 where Date = '{0}'".format(ref_date), engine)
 
 
 def get_index_components(ref_date, engine):
-    df = pd.read_sql("select Code, 500Weight from index_components where Date = '{0}' and 500Weight > 0".format(ref_date), engine)
-    df.rename(columns={'500Weight': 'zz500'}, inplace=True)
-    df['zz500'] /= 100.
-    return df[['Code', 'zz500']]
+    df = pd.read_sql("select Code, 300Weight from index_components where Date = '{0}' and 300Weight > 0".format(ref_date), engine)
+    df.rename(columns={'300Weight': 'hs300'}, inplace=True)
+    df['hs300'] /= 100.
+    return df[['Code', 'hs300']]
 
 
 def get_all_the_factors(ref_date, engine, codes=None):
@@ -75,10 +88,25 @@ def get_all_the_factors(ref_date, engine, codes=None):
     else:
         codes_list = None
     if codes_list:
-        total_factors = pd.read_sql("select * from factor_uqer where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
-        del total_factors['Date']
+        common_factors = pd.read_sql("select * from factor_data where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
+        del common_factors['Date']
+        del common_factors['申万一级行业']
+        del common_factors['申万二级行业']
+        del common_factors['申万三级行业']
+        prod_factors = pd.read_sql("select * from prod_300 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
+        del prod_factors['Date']
     else:
-        total_factors = pd.read_sql("select * from factor_uqer where Date = '{0}'".format(ref_date), engine)
+        common_factors = pd.read_sql(
+            "select * from factor_data where Date = '{0}'".format(ref_date, codes_list), engine)
+        del common_factors['Date']
+        del common_factors['申万一级行业']
+        del common_factors['申万二级行业']
+        del common_factors['申万三级行业']
+        prod_factors = pd.read_sql(
+            "select * from prod_300 where Date = '{0}'".format(ref_date), engine)
+        del prod_factors['Date']
+
+    total_factors = pd.merge(prod_factors, common_factors, on=['Code'], how='left')
 
     total_factors.dropna(axis=1, how='all', inplace=True)
     total_factors.fillna(total_factors.mean(), inplace=True)
@@ -93,9 +121,6 @@ def merge_data(total_factors, industry_codes, risk_factors, index_components, da
     total_data = pd.merge(total_data, risk_factors, on=['Code'])
     total_data = pd.merge(total_data, daily_returns, on=['Code'])
     total_data.dropna(inplace=True)
-
-    if len(total_data) < 500:
-        logger.warning('Data is missing for some codes')
 
     return factor_cols, total_data
 
@@ -116,15 +141,12 @@ def process_data(total_data, factor_cols, risk_cols):
 
 
 def build_portfolio(er_values, total_data, factor_cols, risk_cols, risk_lbound, risk_ubound):
-    bm = total_data['zz500'].values
+    bm = total_data['hs300'].values
     lbound = np.zeros(len(bm))
-    ubound = 0.01 + bm
+    ubound = 0.0075 + bm
     lbound_exposure = risk_lbound
     ubound_exposure = risk_ubound
     risk_exposure = total_data[risk_cols].values
-
-    is_trading = total_data['isTradable'].values
-    ubound[~is_trading] = 0.
 
     factor_pos = {}
 
@@ -166,6 +188,7 @@ def build_portfolio(er_values, total_data, factor_cols, risk_cols, risk_lbound, 
 
 
 def settlement(ref_date, pos_df, bm, returns, type='risk_neutral'):
+
     inds = pos_df['industry']
     pos_df = pos_df[pos_df.columns.difference(['industry'])]
 
@@ -194,7 +217,7 @@ def settlement(ref_date, pos_df, bm, returns, type='risk_neutral'):
 
 
 def upload(ref_date, return_table, engine, table, build_type):
-    engine.execute("delete from {1} where Date = '{0}' and type = '{2}'".format(ref_date, table, build_type))
+    engine.execute("delete from {1} where Date = '{0}'and type = '{2}'".format(ref_date, table, build_type))
     return_table.to_sql(table, engine, if_exists='append', index=False)
 
 
@@ -212,7 +235,7 @@ def create_ond_day_pos(query_date, engine, big_universe=False, risk_neutral=True
     factor_cols, total_data = merge_data(total_factors, industry_codes, risk_factors, index_components, daily_returns)
     processed_values = process_data(total_data, factor_cols, risk_cols)
     total_data[factor_cols] = processed_values
-
+   
     if risk_neutral:
         pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols, -0.01, 0.01)
     else:
@@ -233,7 +256,7 @@ def update_factor_performance(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values)
 
     pos_diff_dict = {}
 
@@ -260,7 +283,7 @@ def update_factor_performance(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_uqer', 'risk_neutral')
+    upload(ref_date, return_table, destination_db, 'performance_300', 'risk_neutral')
 
 
 def update_factor_performance_top_player(ds, **kwargs):
@@ -276,7 +299,7 @@ def update_factor_performance_top_player(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, risk_neutral=False)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, risk_neutral=False)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values)
 
     pos_diff_dict = {}
 
@@ -303,7 +326,7 @@ def update_factor_performance_top_player(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_uqer', 'top_player')
+    upload(ref_date, return_table, destination_db, 'performance_300', 'top_player')
 
 
 def update_factor_performance_big_universe(ds, **kwargs):
@@ -319,7 +342,7 @@ def update_factor_performance_big_universe(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, big_universe=True)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, big_universe=True)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values)
 
     pos_diff_dict = {}
 
@@ -346,7 +369,7 @@ def update_factor_performance_big_universe(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_big_universe_uqer', 'risk_neutral')
+    upload(ref_date, return_table, destination_db, 'performance_big_universe_300', 'risk_neutral')
 
 
 def update_factor_performance_big_universe_top_player(ds, **kwargs):
@@ -362,7 +385,7 @@ def update_factor_performance_big_universe_top_player(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, big_universe=True, risk_neutral=False)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, big_universe=True, risk_neutral=False)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values)
 
     pos_diff_dict = {}
 
@@ -389,7 +412,7 @@ def update_factor_performance_big_universe_top_player(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_big_universe_uqer', 'top_player')
+    upload(ref_date, return_table, destination_db, 'performance_big_universe_300', 'top_player')
 
 
 run_this1 = PythonOperator(
@@ -426,4 +449,4 @@ run_this4 = PythonOperator(
 
 
 if __name__ == '__main__':
-    update_factor_performance(None, next_execution_date=dt.datetime(2017, 1, 6))
+    update_factor_performance_big_universe(None, next_execution_date=dt.datetime(2012, 1, 17))
