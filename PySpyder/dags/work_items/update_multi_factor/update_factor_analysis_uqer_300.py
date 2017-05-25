@@ -273,7 +273,7 @@ def update_factor_performance_top_player(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, risk_neutral=False)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, risk_neutral=False)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values, type='top_player')
 
     pos_diff_dict = {}
 
@@ -359,7 +359,7 @@ def update_factor_performance_big_universe_top_player(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, big_universe=True, risk_neutral=False)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, big_universe=True, risk_neutral=False)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['hs300'].values, total_data['D1LogReturn'].values, type='top_player')
 
     pos_diff_dict = {}
 
