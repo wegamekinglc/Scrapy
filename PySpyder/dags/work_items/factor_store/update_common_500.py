@@ -71,6 +71,7 @@ def common_500_one_day(factor_name, ref_date, use_only_index_components=False, r
                                             industry=industry,
                                             d1returns=d1returns,
                                             detail_analysis=True,
+                                            risk_exp=risk_exp,
                                             is_tradable=is_tradable)
     return weights, analysis
 
