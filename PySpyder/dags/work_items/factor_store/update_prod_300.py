@@ -26,14 +26,14 @@ destination = sa.create_engine('mysql+pymysql://sa:We051253524522@rm-bp1psdz5615
 
 
 def prod_300_one_day(factor_name, ref_date, use_only_index_components=False, risk_neutral=True):
-    risk_factors = ','.join(['risk_factor_500.' + name for name in risk_factors_300])
+    risk_factors = ','.join(['risk_factor_300.' + name for name in risk_factors_300])
 
     sql = "select prod_300.Code, prod_300.{factor_name}, factor_data.申万一级行业, {risk_factors}," \
-          " return_500.D1LogReturn, return_500.isTradable from prod_300".format(factor_name=factor_name,
+          " return_300.D1LogReturn, return_300.isTradable from prod_300".format(factor_name=factor_name,
                                                                                   risk_factors=risk_factors)
     sql += " join factor_data on prod_300.Date = factor_data.Date and prod_300.Code = factor_data.Code" \
-           " join risk_factor_500 on prod_300.Date = risk_factor_500.Date and prod_300.Code = risk_factor_500.Code" \
-           " join return_500 on prod_300.Date = return_500.Date and prod_300.Code = return_500.Code" \
+           " join risk_factor_300 on prod_300.Date = risk_factor_300.Date and prod_300.Code = risk_factor_300.Code" \
+           " join return_300 on prod_300.Date = return_300.Date and prod_300.Code = return_300.Code" \
            " where prod_300.Date = '{ref_date}'".format(ref_date=ref_date)
 
     df1 = pd.read_sql(sql, engine).dropna()
@@ -41,7 +41,7 @@ def prod_300_one_day(factor_name, ref_date, use_only_index_components=False, ris
     if df1.empty:
         return None, None
 
-    df2 = pd.read_sql("select Code, 500Weight / 100. as benchmark from index_components "
+    df2 = pd.read_sql("select Code, 300Weight / 100. as benchmark from index_components "
                       "where Date ='{ref_date}'".format(ref_date=ref_date),
                       engine)
 
