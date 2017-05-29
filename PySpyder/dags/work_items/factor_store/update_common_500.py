@@ -80,6 +80,11 @@ def common_500_analysis(factor_name, ref_date, use_only_index_components=False, 
     previous_day = advanceDateByCalendar('china.sse', ref_date, '-1b').strftime('%Y-%m-%d')
 
     weights, analysis = common_500_one_day(factor_name, ref_date, use_only_index_components, risk_neutral)
+
+    if weights is None:
+        logger.warning("No data for '{0}' on {1}".format(factor_name, ref_date))
+        return
+
     previous_weight, _ = common_500_one_day(factor_name, previous_day, use_only_index_components, risk_neutral)
 
     pos_diff_dict = {}
@@ -121,25 +126,29 @@ def create_factor_analysis(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
-        return 0
 
     factor_name = kwargs['factor_name']
+    logger.info("updating '{0}' on {1}".format(factor_name, ref_date))
 
     # small universe, risk_neutral
     return_table = common_500_analysis(factor_name, ref_date, use_only_index_components=True, risk_neutral=True)
-    upload(ref_date, return_table, destination, 'performance', factor_name, 'risk_neutral')
+    if return_table is not None:
+        upload(ref_date, return_table, destination, 'performance', factor_name, 'risk_neutral')
 
     # small universe, top_100
     return_table = common_500_analysis(factor_name, ref_date, use_only_index_components=True, risk_neutral=False)
-    upload(ref_date, return_table, destination, 'performance', factor_name, 'top_100')
+    if return_table is not None:
+        upload(ref_date, return_table, destination, 'performance', factor_name, 'top_100')
 
     # small universe, risk_neutral
     return_table = common_500_analysis(factor_name, ref_date, use_only_index_components=False, risk_neutral=True)
-    upload(ref_date, return_table, destination, 'performance_big_universe', factor_name, 'risk_neutral')
+    if return_table is not None:
+        upload(ref_date, return_table, destination, 'performance_big_universe', factor_name, 'risk_neutral')
 
     # small universe, top_100
     return_table = common_500_analysis(factor_name, ref_date, use_only_index_components=False, risk_neutral=False)
-    upload(ref_date, return_table, destination, 'performance_big_universe', factor_name, 'top_100')
+    if return_table is not None:
+        upload(ref_date, return_table, destination, 'performance_big_universe', factor_name, 'top_100')
 
 
 factor_table = pd.read_sql('Describe common_500', engine)
@@ -161,9 +170,13 @@ dag = DAG(
 
 
 for factor_name in factor_table.Field:
-    task = PythonOperator(task_id=factor_name,
-                          provide_context=True,
-                          python_callable=create_factor_analysis,
-                          op_kwargs={'factor_name': factor_name},
-                          dag=dag)
+    if factor_name != 'Date' and factor_name != 'Code':
+        task = PythonOperator(task_id=factor_name,
+                              provide_context=True,
+                              python_callable=create_factor_analysis,
+                              op_kwargs={'factor_name': factor_name},
+                              dag=dag)
 
+
+if __name__ == '__main__':
+    create_factor_analysis(None, next_execution_date='2008-01-04', factor_name='DeducatedEarningToCap')
