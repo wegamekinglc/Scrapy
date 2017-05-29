@@ -29,7 +29,7 @@ def prod_500_one_day(factor_name, ref_date, use_only_index_components=False, ris
     risk_factors = ','.join(['risk_factor_500.' + name for name in risk_factors_500])
 
     sql = "select prod_500.Code, prod_500.{factor_name}, factor_data.申万一级行业, {risk_factors}," \
-          " return_500.D1LogReturn, return_500.isTradable from common_500".format(factor_name=factor_name,
+          " return_500.D1LogReturn, return_500.isTradable from prod_500".format(factor_name=factor_name,
                                                                                   risk_factors=risk_factors)
     sql += " join factor_data on prod_500.Date = factor_data.Date and prod_500.Code = factor_data.Code" \
            " join risk_factor_500 on prod_500.Date = risk_factor_500.Date and prod_500.Code = risk_factor_500.Code" \
@@ -158,7 +158,7 @@ def create_factor_analysis(ds, **kwargs):
 factor_table = pd.read_sql('Describe prod_500', engine)
 
 start_date = dt.datetime(2012, 1, 1)
-dag_name = 'update_common_500_analysis'
+dag_name = 'update_prod_500_analysis'
 
 default_args = {
     'owner': 'wegamekinglc',
@@ -183,4 +183,4 @@ for factor_name in factor_table.Field:
 
 
 if __name__ == '__main__':
-    create_factor_analysis(None, next_execution_date='2008-01-04', factor_name='DeducatedEarningToCap')
+    create_factor_analysis(None, next_execution_date='2008-01-04', factor_name='CFinc1')
