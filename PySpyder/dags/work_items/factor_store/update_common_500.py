@@ -127,6 +127,8 @@ def create_factor_analysis(ds, **kwargs):
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
 
+    ref_date = advanceDateByCalendar('china.sse', ref_date, '-2b').strftime('%Y-%m-%d')
+
     factor_name = kwargs['factor_name']
     logger.info("updating '{0}' on {1}".format(factor_name, ref_date))
 
