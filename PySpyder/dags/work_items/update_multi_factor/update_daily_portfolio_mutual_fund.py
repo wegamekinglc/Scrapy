@@ -16,7 +16,7 @@ from alphamind.examples.config import risk_factors_500
 from alphamind.data.standardize import standardize
 from alphamind.data.neutralize import neutralize
 from alphamind.data.winsorize import winsorize_normal
-from alphamind.portfolio.linearbuilder import linear_build
+from alphamind.analysis.factoranalysis import build_portfolio
 from simpleutils import CustomLogger
 from PyFin.api import isBizDay
 from PyFin.api import advanceDateByCalendar
@@ -94,13 +94,18 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     er = normed_factor @ factor_weights
 
     # portfolio construction
-
     bm = total_data[index_components].values
     lbound = np.zeros(len(total_data))
     ubound = 0.01 + bm
-    lbound_exposure = -0.01
-    ubound_exposure = 0.01
     risk_exposure = total_data[risk_factors_names].values
+    risk_lbound = bm @ risk_exposure
+    risk_ubound = bm @ risk_exposure
+
+    # set market segment exposure limit
+    exchange_flag = np.array([1.0 if code > 600000 else 0. for code in total_data.Code])
+    risk_exposure = np.concatenate([risk_exposure, exchange_flag.reshape((-1,1))], axis=1)
+    risk_lbound = np.append(risk_lbound, [0.5])
+    risk_ubound = np.append(risk_ubound, [0.5])
 
     # get black list 1
     engine = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.100/WindDB')
@@ -151,48 +156,40 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     except FileNotFoundError:
         logger.info('No manual black list exists for the date: {0}'.format(prev_date.strftime('%Y-%m-%d')))
 
-    # set market segment exposure limit
-    exchange_flag = np.array([1.0 if code > 600000 else 0. for code in total_data.Code])
+    weights = build_portfolio(er,
+                              builder='linear',
+                              risk_exposure=risk_exposure,
+                              lbound=lbound,
+                              ubound=ubound,
+                              risk_target=(risk_lbound, risk_ubound),
+                              solver='GLPK')
 
-    status, value, ret = linear_build(er,
-                                      lbound=lbound,
-                                      ubound=ubound,
-                                      risk_exposure=risk_exposure,
-                                      bm=bm,
-                                      risk_target=(lbound_exposure, ubound_exposure),
-                                      exchange_flag=exchange_flag,
-                                      exchange_limit=(0.5 - 1.e-4, 0.5 + 1.e-4),
-                                      solver='GLPK')
+    portfolio = pd.DataFrame({'weight': weights,
+                              'industry': total_data['申万一级行业'].values,
+                              'zz500': total_data[index_components].values,
+                              'er': er}, index=total_data.Code)
 
-    if status != 'optimal':
-        raise ValueError('target is not feasible')
-    else:
-        portfolio = pd.DataFrame({'weight': ret,
-                                  'industry': total_data['申万一级行业'].values,
-                                  'zz500': total_data[index_components].values,
-                                  'er': er}, index=total_data.Code)
+    client = pymongo.MongoClient('mongodb://10.63.6.176:27017')
+    db = client.multifactor
+    portfolio_collection = db.portfolio_mutal_fund
 
-        client = pymongo.MongoClient('mongodb://10.63.6.176:27017')
-        db = client.multifactor
-        portfolio_collection = db.portfolio_mutal_fund
+    detail_info = {}
+    for code, w, bm_w, ind, r in zip(total_data.Code.values, weights, total_data[index_components].values,
+                                     total_data['申万一级行业'].values, er):
+        detail_info[str(code)] = {
+            'weight': w,
+            'industry': ind,
+            'zz500': bm_w,
+            'er': r
+        }
 
-        detail_info = {}
-        for code, w, bm_w, ind, r in zip(total_data.Code.values, ret, total_data[index_components].values,
-                                         total_data['申万一级行业'].values, er):
-            detail_info[str(code)] = {
-                'weight': w,
-                'industry': ind,
-                'zz500': bm_w,
-                'er': r
-            }
+    portfolio_dict = {'Date': prev_date,
+                      'portfolio': detail_info}
 
-        portfolio_dict = {'Date': prev_date,
-                          'portfolio': detail_info}
+    portfolio_collection.delete_many({'Date': prev_date})
+    portfolio_collection.insert_one(portfolio_dict)
 
-        portfolio_collection.delete_many({'Date': prev_date})
-        portfolio_collection.insert_one(portfolio_dict)
-
-        portfolio.to_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500_mutual_fund/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')), encoding='gbk')
+    portfolio.to_csv('~/mnt/sharespace/personal/licheng/portfolio/zz500_mutual_fund/{0}.csv'.format(prev_date.strftime('%Y-%m-%d')), encoding='gbk')
 
     return 0
 
@@ -205,4 +202,4 @@ run_this1 = PythonOperator(
 )
 
 if __name__ == '__main__':
-    update_daily_portfolio_mutual_fund(None, next_execution_date=dt.datetime(2017, 5, 17))
+    update_daily_portfolio_mutual_fund(None, next_execution_date=dt.datetime(2017, 5, 31))

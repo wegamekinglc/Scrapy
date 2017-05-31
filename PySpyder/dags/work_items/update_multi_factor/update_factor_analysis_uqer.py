@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2017-5-19
+Created on 2017-5-17
 
 @author: cheng.li
 """
@@ -18,13 +18,14 @@ from alphamind.examples.config import risk_factors_500
 from alphamind.data.standardize import standardize
 from alphamind.data.winsorize import winsorize_normal
 from alphamind.data.neutralize import neutralize
-from alphamind.portfolio.linearbuilder import linear_build
+from alphamind.analysis.factoranalysis import build_portfolio as bp
+
+factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
+factor_weights = factor_weights / factor_weights.sum()
 
 alpha_strategy = {}
 
-
 logger = CustomLogger('MULTI_FACTOR', 'info')
-
 
 start_date = dt.datetime(2017, 1, 5)
 dag_name = 'update_factor_analysis_uqer'
@@ -41,9 +42,8 @@ dag = DAG(
     schedule_interval='0 19 * * 1,2,3,4,5'
 )
 
-
 source_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
-destination_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com/factor_analysis?charset=utf8')
+destination_db = sa.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/factor_analysis?charset=utf8')
 
 
 def get_industry_codes(ref_date, engine):
@@ -52,21 +52,23 @@ def get_industry_codes(ref_date, engine):
 
 def get_risk_factors(ref_date, engine):
     risk_factor_list = ','.join(risk_factors_500)
-    risk_factors = pd.read_sql("select Code, {0} from risk_factor_500 where Date = '{1}'".format(risk_factor_list, ref_date), engine)
+    risk_factors = pd.read_sql(
+        "select Code, {0} from risk_factor_500 where Date = '{1}'".format(risk_factor_list, ref_date), engine)
     risk_factors['Market'] = 1.
     risk_cols = risk_factors_500 + ['Market']
     return risk_cols, risk_factors
 
 
 def get_security_returns(ref_date, engine):
-    return pd.read_sql("select Code, D1LogReturn, isTradable from return_500 where Date = '{0}'".format(ref_date), engine)
+    return pd.read_sql("select Code, D1LogReturn, isTradable from return_500 where Date = '{0}'".format(ref_date),
+                       engine)
 
 
 def get_index_components(ref_date, engine):
-    df = pd.read_sql("select Code, 500Weight from index_components where Date = '{0}' and 500Weight > 0".format(ref_date), engine)
-    df.rename(columns={'500Weight': 'zz500'}, inplace=True)
-    df['zz500'] /= 100.
-    return df[['Code', 'zz500']]
+    df = pd.read_sql(
+        "select Code, 500Weight as bm from index_components where Date = '{0}' and 500Weight > 0".format(ref_date), engine)
+    df['bm'] /= 100.
+    return df[['Code', 'bm']]
 
 
 def get_all_the_factors(ref_date, engine, codes=None):
@@ -115,49 +117,66 @@ def process_data(total_data, factor_cols, risk_cols):
     return processed_values
 
 
-def build_portfolio(er_values, total_data, factor_cols, risk_cols, risk_lbound, risk_ubound):
-    bm = total_data['zz500'].values
-    lbound = np.zeros(len(bm))
-    ubound = 0.01 + bm
-    lbound_exposure = risk_lbound
-    ubound_exposure = risk_ubound
-    risk_exposure = total_data[risk_cols].values
+def build_portfolio(er_values, total_data, factor_cols, risk_cols, risk_neutral=True):
+    if risk_neutral:
+        bm = total_data['bm'].values
+        lbound = np.zeros(len(bm))
+        ubound = 0.01 + bm
+        risk_exposure = total_data[risk_cols].values
+        lbound_exposure = bm @ risk_exposure
+        ubound_exposure = bm @ risk_exposure
 
-    is_trading = total_data['isTradable'].values
-    ubound[~is_trading] = 0.
+        is_trading = total_data['isTradable'].values
+        ubound[~is_trading] = 0.
 
-    factor_pos = {}
+        factor_pos = {}
 
-    for i, name in enumerate(factor_cols):
-        er = er_values[:, i]
-        status, value, ret = linear_build(er,
-                                          lbound=lbound,
-                                          ubound=ubound,
-                                          risk_exposure=risk_exposure,
-                                          bm=bm,
-                                          risk_target=(lbound_exposure, ubound_exposure),
-                                          solver='GLPK')
-        if status != 'optimal':
-            raise ValueError('target is not feasible')
-        else:
-            factor_pos[name] = ret
+        for i, name in enumerate(factor_cols):
+            er = er_values[:, i]
+            weights = bp(er,
+                         builder='linear',
+                         risk_exposure=risk_exposure,
+                         lbound=lbound,
+                         ubound=ubound,
+                         risk_target=(lbound_exposure, ubound_exposure),
+                         solver='GLPK')
+            factor_pos[name] = weights
 
-    for name in alpha_strategy:
-        er = np.zeros(len(total_data))
-        for f in alpha_strategy[name]:
-            er += alpha_strategy[name][f] * total_data[f].values
+        for name in alpha_strategy:
+            er = np.zeros(len(total_data))
+            for f in alpha_strategy[name]:
+                er += alpha_strategy[name][f] * total_data[f].values
 
-        status, value, ret = linear_build(er,
-                                          lbound=lbound,
-                                          ubound=ubound,
-                                          risk_exposure=risk_exposure,
-                                          bm=bm,
-                                          risk_target=(lbound_exposure, ubound_exposure),
-                                          solver='GLPK')
-        if status != 'optimal':
-            raise ValueError('target is not feasible')
-        else:
-            factor_pos[name] = ret
+            weights = bp(er,
+                         builder='linear',
+                         risk_exposure=risk_exposure,
+                         lbound=lbound,
+                         ubound=ubound,
+                         risk_target=(lbound_exposure, ubound_exposure),
+                         solver='GLPK')
+            factor_pos[name] = weights
+    else:
+        bm = total_data['bm'].values
+        factor_pos = {}
+        is_trading = total_data['isTradable'].values
+        for i, name in enumerate(factor_cols):
+            er = er_values[:, i]
+            er[~is_trading] = np.min(er) - 9.
+            weights = bp(er,
+                         builder='rank',
+                         use_rank=100) / 100. * bm.sum()
+            factor_pos[name] = weights
+
+        for name in alpha_strategy:
+            er = np.zeros(len(total_data))
+            for f in alpha_strategy[name]:
+                er += alpha_strategy[name][f] * total_data[f].values
+            er[~is_trading] = np.min(er) - 9.
+
+            weights = bp(er,
+                         builder='rank',
+                         use_rank=100) / 100. * bm.sum()
+            factor_pos[name] = weights
 
     res = pd.DataFrame(factor_pos, index=total_data.Code)
     res['industry'] = total_data['申万一级行业'].values
@@ -193,8 +212,17 @@ def settlement(ref_date, pos_df, bm, returns, type='risk_neutral'):
     return res
 
 
-def upload(ref_date, return_table, engine, table, build_type):
-    engine.execute("delete from {1} where Date = '{0}' and type = '{2}'".format(ref_date, table, build_type))
+def upload(ref_date, return_table, engine, table):
+    build_type = return_table['type'].unique()[0]
+    universe = return_table['universe'].unique()[0]
+    source = return_table['source'].unique()[0]
+
+    engine.execute("delete from {1} where Date = '{0}' and type = '{2}' and universe = '{3}' and source = '{4}'"
+                   .format(ref_date,
+                           table,
+                           build_type,
+                           universe,
+                           source))
     return_table.to_sql(table, engine, if_exists='append', index=False)
 
 
@@ -213,10 +241,7 @@ def create_ond_day_pos(query_date, engine, big_universe=False, risk_neutral=True
     processed_values = process_data(total_data, factor_cols, risk_cols)
     total_data[factor_cols] = processed_values
 
-    if risk_neutral:
-        pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols, -0.01, 0.01)
-    else:
-        pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols, -1., 1.)
+    pos_df = build_portfolio(processed_values, total_data, factor_cols, risk_cols, risk_neutral=risk_neutral)
     return pos_df, total_data
 
 
@@ -233,7 +258,7 @@ def update_factor_performance(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['bm'].values, total_data['D1LogReturn'].values)
 
     pos_diff_dict = {}
 
@@ -260,10 +285,12 @@ def update_factor_performance(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_uqer', 'risk_neutral')
+    return_table['source'] = 'uqer'
+    return_table['universe'] = 'zz500'
+    upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_top_player(ds, **kwargs):
+def update_factor_performance_top_100(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -276,7 +303,8 @@ def update_factor_performance_top_player(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, risk_neutral=False)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, risk_neutral=False)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values, type='top_player')
+    return_table = settlement(ref_date, this_day_pos, total_data['bm'].values, total_data['D1LogReturn'].values,
+                              type='top_100')
 
     pos_diff_dict = {}
 
@@ -303,7 +331,9 @@ def update_factor_performance_top_player(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_uqer', 'top_player')
+    return_table['source'] = 'uqer'
+    return_table['universe'] = 'zz500'
+    upload(ref_date, return_table, destination_db, 'performance')
 
 
 def update_factor_performance_big_universe(ds, **kwargs):
@@ -319,7 +349,7 @@ def update_factor_performance_big_universe(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, big_universe=True)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, big_universe=True)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values)
+    return_table = settlement(ref_date, this_day_pos, total_data['bm'].values, total_data['D1LogReturn'].values)
 
     pos_diff_dict = {}
 
@@ -346,10 +376,12 @@ def update_factor_performance_big_universe(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_big_universe_uqer', 'risk_neutral')
+    return_table['source'] = 'uqer'
+    return_table['universe'] = 'zz500_expand'
+    upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_big_universe_top_player(ds, **kwargs):
+def update_factor_performance_big_universe_top_100(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -362,7 +394,8 @@ def update_factor_performance_big_universe_top_player(ds, **kwargs):
     this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, big_universe=True, risk_neutral=False)
     last_day_pos, _ = create_ond_day_pos(previous_date, source_db, big_universe=True, risk_neutral=False)
 
-    return_table = settlement(ref_date, this_day_pos, total_data['zz500'].values, total_data['D1LogReturn'].values, type='top_player')
+    return_table = settlement(ref_date, this_day_pos, total_data['bm'].values, total_data['D1LogReturn'].values,
+                              type='top_100')
 
     pos_diff_dict = {}
 
@@ -389,7 +422,9 @@ def update_factor_performance_big_universe_top_player(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    upload(ref_date, return_table, destination_db, 'performance_big_universe_uqer', 'top_player')
+    return_table['source'] = 'uqer'
+    return_table['universe'] = 'zz500_expand'
+    upload(ref_date, return_table, destination_db, 'performance')
 
 
 run_this1 = PythonOperator(
@@ -399,7 +434,6 @@ run_this1 = PythonOperator(
     dag=dag
 )
 
-
 run_this2 = PythonOperator(
     task_id='update_factor_performance_big_universe',
     provide_context=True,
@@ -407,23 +441,19 @@ run_this2 = PythonOperator(
     dag=dag
 )
 
-
 run_this3 = PythonOperator(
-    task_id='update_factor_performance_top_player',
+    task_id='update_factor_performance_top_100',
     provide_context=True,
-    python_callable=update_factor_performance_top_player,
+    python_callable=update_factor_performance_top_100,
     dag=dag
 )
-
 
 run_this4 = PythonOperator(
-    task_id='update_factor_performance_big_universe_top_player',
+    task_id='update_factor_performance_big_universe_top_100',
     provide_context=True,
-    python_callable=update_factor_performance_big_universe_top_player,
+    python_callable=update_factor_performance_big_universe_top_100,
     dag=dag
 )
 
-
-
 if __name__ == '__main__':
-    update_factor_performance(None, next_execution_date=dt.datetime(2017, 1, 6))
+    update_factor_performance_big_universe_top_100(None, next_execution_date=dt.datetime(2017, 1, 6))
