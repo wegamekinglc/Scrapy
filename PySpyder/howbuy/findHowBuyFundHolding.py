@@ -125,9 +125,9 @@ def fund_holding_spyder(ref_date, force_update=False):
                      ['howbuyCODE', 'fundName', 'publicationDate', 'holdingAmount', 'holdingPercentage', 'changeAmount',
                       'instrumentID',
                       'instrumentName'],
-                     'HOWBUY_FUND_HOLDING',
+                     'howbuy_fund_holding',
                      hedge_fund_db_settings)
 
 
 if __name__ == '__main__':
-    fund_holding_spyder(dt.datetime(2017, 4, 17))
+    fund_holding_spyder(dt.datetime(2017, 5, 5))

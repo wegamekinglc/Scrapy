@@ -93,7 +93,7 @@ def fund_style_return_spyder(ref_date, force_update=False):
         total_table = format_table(total_table)
         insert_table(total_table,
                      ['tradingDate', 'howbuyStrategy', 'max_ret', 'min_ret', 'median_ret', 'mean_ret'],
-                     'HOWBUY_STYLE_RET',
+                     'howbuy_style_ret',
                      hedge_fund_db_settings)
 
 

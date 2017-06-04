@@ -102,7 +102,7 @@ def fund_index_spyder(ref_date, force_update=False):
         total_table = format_table(total_table)
         insert_table(total_table,
                      ['tradingDate', 'howbuyCode', 'indexName', 'indexLevel', 'indexLevelChg', 'adjustedHS300'],
-                     'HOWBUY_FUND_INDEX',
+                     'howbuy_fund_index',
                      hedge_fund_db_settings)
 
 

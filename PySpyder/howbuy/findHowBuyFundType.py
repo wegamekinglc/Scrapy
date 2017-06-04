@@ -86,7 +86,7 @@ def fund_type_spyder(ref_date, force_update=False):
                      ['howbuyCODE', 'fundName', 'fundManagementComp', 'manager', 'setupDate', 'howbuyStrategy',
                       'adjPrice',
                       'priceDate'],
-                     'HOWBUY_FUND_TYPE',
+                     'howbuy_fund_type',
                      hedge_fund_db_settings)
 
 
