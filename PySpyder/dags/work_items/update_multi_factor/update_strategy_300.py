@@ -48,7 +48,7 @@ alpha_strategy = {
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
 start_date = dt.datetime(2012, 1, 1)
-dag_name = 'update_factor_analysis_300'
+dag_name = 'update_strategy_analysis_300'
 
 default_args = {
     'owner': 'wegamekinglc',
