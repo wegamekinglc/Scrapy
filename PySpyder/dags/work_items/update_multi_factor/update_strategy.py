@@ -20,24 +20,34 @@ from alphamind.data.winsorize import winsorize_normal
 from alphamind.data.neutralize import neutralize
 from alphamind.analysis.factoranalysis import build_portfolio as bp
 
-factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
-factor_weights = factor_weights / factor_weights.sum()
+strategy1_factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
+strategy1_factor_weights = strategy1_factor_weights / strategy1_factor_weights.sum()
+
+strategy2_factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 15.44 * 2.])
+strategy2_factor_weights = strategy2_factor_weights / strategy2_factor_weights.sum()
 
 alpha_strategy = {
     'strategy1':
-    {
-        'EPSAfterNonRecurring': factor_weights[0],
-        'DivP': factor_weights[1],
-        'CFinc1': factor_weights[2],
-        'BDTO': factor_weights[3],
-        'RVOL': factor_weights[4],
-    }
+        {
+            'EPSAfterNonRecurring': strategy1_factor_weights[0],
+            'DivP': strategy1_factor_weights[1],
+            'CFinc1': strategy1_factor_weights[2],
+            'BDTO': strategy1_factor_weights[3],
+            'RVOL': strategy1_factor_weights[4],
+        },
+    'strategy2':
+        {
+            'EPSAfterNonRecurring': strategy2_factor_weights[0],
+            'DivP': strategy2_factor_weights[1],
+            'CFinc1': strategy2_factor_weights[2],
+            'CFPS':  strategy2_factor_weights[3],
+        }
 }
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
 start_date = dt.datetime(2012, 1, 1)
-dag_name = 'update_factor_analysis'
+dag_name = 'update_strategy_analysis'
 
 default_args = {
     'owner': 'wegamekinglc',
@@ -164,17 +174,6 @@ def build_portfolio(er_values, total_data, factor_cols, risk_cols, risk_neutral=
 
         factor_pos = {}
 
-        for i, name in enumerate(factor_cols):
-            er = er_values[:, i]
-            weights = bp(er,
-                         builder='linear',
-                         risk_exposure=risk_exposure,
-                         lbound=lbound,
-                         ubound=ubound,
-                         risk_target=(lbound_exposure, ubound_exposure),
-                         solver='GLPK')
-            factor_pos[name] = weights
-
         for name in alpha_strategy:
             er = np.zeros(len(total_data))
             for f in alpha_strategy[name]:
@@ -192,13 +191,6 @@ def build_portfolio(er_values, total_data, factor_cols, risk_cols, risk_neutral=
         bm = total_data['bm'].values
         factor_pos = {}
         is_trading = total_data['isTradable'].values
-        for i, name in enumerate(factor_cols):
-            er = er_values[:, i]
-            er[~is_trading] = np.min(er) - 9.
-            weights = bp(er,
-                         builder='rank',
-                         use_rank=100) / 100. * bm.sum()
-            factor_pos[name] = weights
 
         for name in alpha_strategy:
             er = np.zeros(len(total_data))
