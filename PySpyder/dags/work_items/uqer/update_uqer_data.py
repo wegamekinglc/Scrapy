@@ -74,6 +74,20 @@ def update_uqer_market(ds, **kwargs):
     df.to_sql(table, engine2, index=False, if_exists='append')
 
 
+def update_uqer_halt_list(ds, **kwargs):
+    ref_date, _ = process_date(ds)
+
+    table = 'halt_list'
+    df = api.SecHaltGet(beginDate=ref_date, endDate=ref_date)
+    df = df[df.assetClass == 'E']
+    df['Date'] = ref_date
+    df.rename(columns={'ticker': 'Code'}, inplace=True)
+    df.Code = df.Code.astype(int)
+    del df['secID']
+    engine2.execute("delete from {0} where Date = '{1}';".format(table, ref_date))
+    df.to_sql(table, engine2, index=False, if_exists='append')
+
+
 def update_uqer_index_components(ds, **kwargs):
     ref_date, this_date = process_date(ds)
 
@@ -202,5 +216,13 @@ _ = PythonOperator(
 )
 
 
+_ = PythonOperator(
+    task_id='update_uqer_halt_list',
+    provide_context=True,
+    python_callable=update_uqer_halt_list,
+    dag=dag
+)
+
+
 if __name__ == '__main__':
-    update_uqer_risk_model(ds='2017-05-31')
+    update_uqer_halt_list(ds='2017-06-01')
