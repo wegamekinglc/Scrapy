@@ -88,6 +88,17 @@ def update_uqer_halt_list(ds, **kwargs):
     df.to_sql(table, engine2, index=False, if_exists='append')
 
 
+def update_uqer_universe_300(ds, **kwargs):
+    ref_date, this_date = process_date(ds)
+
+    table = 'universe'
+    engine2.execute("delete from {0} where Date = '{1}' and universe = 'hs300';".format(table, ref_date))
+
+    df = pd.read_sql("select Date, Code from index_components where Date = '{0}' and indexCode = 300", engine2)
+    df['universe'] = 'hs300'
+    df.to_sql(table, engine2, index=False, if_exists='append')
+
+
 def update_uqer_index_components(ds, **kwargs):
     ref_date, this_date = process_date(ds)
 
@@ -200,12 +211,21 @@ _ = PythonOperator(
 )
 
 
-_ = PythonOperator(
+task = PythonOperator(
     task_id='update_uqer_index_components',
     provide_context=True,
     python_callable=update_uqer_index_components,
     dag=dag
 )
+
+sub_task1 = PythonOperator(
+    task_id='update_uqer_universe_300',
+    provide_context=True,
+    python_callable=update_uqer_universe_300,
+    dag=dag
+)
+
+sub_task1.set_upstream(task)
 
 
 _ = PythonOperator(
