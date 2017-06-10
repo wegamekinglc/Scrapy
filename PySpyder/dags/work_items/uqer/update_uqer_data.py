@@ -88,7 +88,7 @@ def update_uqer_halt_list(ds, **kwargs):
     df.to_sql(table, engine2, index=False, if_exists='append')
 
 
-def update_uqer_universe_300(ds, **kwargs):
+def update_uqer_universe_hs300(ds, **kwargs):
     ref_date, this_date = process_date(ds)
 
     table = 'universe'
@@ -96,6 +96,17 @@ def update_uqer_universe_300(ds, **kwargs):
 
     df = pd.read_sql("select Date, Code from index_components where Date = '{0}' and indexCode = 300".format(ref_date), engine2)
     df['universe'] = 'hs300'
+    df.to_sql(table, engine2, index=False, if_exists='append')
+
+
+def update_uqer_universe_zz500(ds, **kwargs):
+    ref_date, this_date = process_date(ds)
+
+    table = 'universe'
+    engine2.execute("delete from {0} where Date = '{1}' and universe = 'zz500';".format(table, ref_date))
+
+    df = pd.read_sql("select Date, Code from index_components where Date = '{0}' and indexCode = 905".format(ref_date), engine2)
+    df['universe'] = 'zz500'
     df.to_sql(table, engine2, index=False, if_exists='append')
 
 
@@ -219,13 +230,22 @@ task = PythonOperator(
 )
 
 sub_task1 = PythonOperator(
-    task_id='update_uqer_universe_300',
+    task_id='update_uqer_universe_hs300',
     provide_context=True,
-    python_callable=update_uqer_universe_300,
+    python_callable=update_uqer_universe_hs300,
     dag=dag
 )
 
+sub_task2 = PythonOperator(
+    task_id='update_uqer_universe_zz500',
+    provide_context=True,
+    python_callable=update_uqer_universe_zz500,
+    dag=dag
+)
+
+
 sub_task1.set_upstream(task)
+sub_task2.set_upstream(task)
 
 
 _ = PythonOperator(
