@@ -29,7 +29,7 @@ default_args = {
 dag = DAG(
     dag_id=dag_name,
     default_args=default_args,
-    schedule_interval='0 18 * * 1,2,3,4,5'
+    schedule_interval='0 6,18 * * 1,2,3,4,5'
 )
 
 
