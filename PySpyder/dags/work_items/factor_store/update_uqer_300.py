@@ -30,7 +30,7 @@ def factor_uqer_one_day(factor_name, ref_date, use_only_index_components=False, 
 
     sql = "select factor_uqer.Code, factor_uqer.{factor_name}, factor_data.申万一级行业, {risk_factors}," \
           " return_300.D1LogReturn, return_300.isTradable from factor_uqer".format(factor_name=factor_name,
-                                                                                  risk_factors=risk_factors)
+                                                                                   risk_factors=risk_factors)
     sql += " join factor_data on factor_uqer.Date = factor_data.Date and factor_uqer.Code = factor_data.Code" \
            " join risk_factor_300 on factor_uqer.Date = risk_factor_300.Date and factor_uqer.Code = risk_factor_300.Code" \
            " join return_300 on factor_uqer.Date = return_300.Date and factor_uqer.Code = return_300.Code" \
