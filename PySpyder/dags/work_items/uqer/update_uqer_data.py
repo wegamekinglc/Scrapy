@@ -33,6 +33,7 @@ dag = DAG(
 )
 
 
+_ = uqer.Client(username='13817268186', password='we083826')
 engine1 = sqlalchemy.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
 engine2 = sqlalchemy.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/uqer?charset=utf8')
 
@@ -49,7 +50,6 @@ def update_uqer_factors(ds, **kwargs):
 
     table = 'factor_uqer'
 
-    _ = uqer.Client(username='13817268186', password='we083826')
     df = api.MktStockFactorsOneDayProGet(tradeDate=ref_date)
     df.rename(columns={'tradeDate': 'Date', 'ticker': 'Code'}, inplace=True)
     df.Code = df.Code.astype(int)
@@ -68,7 +68,6 @@ def update_uqer_market(ds, **kwargs):
 
     table = 'market'
 
-    _ = uqer.Client(username='13817268186', password='we083826')
     df = api.MktEqudGet(tradeDate=ref_date)
     df.rename(columns={'tradeDate': 'Date', 'ticker': 'Code'}, inplace=True)
     df.Code = df.Code.astype(int)
@@ -82,7 +81,6 @@ def update_uqer_halt_list(ds, **kwargs):
 
     table = 'halt_list'
 
-    _ = uqer.Client(username='13817268186', password='we083826')
     df = api.SecHaltGet(beginDate=ref_date, endDate=ref_date)
     df = df[df.assetClass == 'E']
     df['Date'] = ref_date
@@ -123,7 +121,6 @@ def update_uqer_index_components(ds, **kwargs):
 
     total_data = pd.DataFrame()
 
-    _ = uqer.Client(username='13817268186', password='we083826')
     for index in index_codes:
         df = api.IdxCloseWeightGet(ticker=index,
                                    beginDate=dt.datetime(this_date.year - 1, this_date.month, this_date.day).strftime(
@@ -150,7 +147,6 @@ def update_uqer_risk_model(ds, **kwargs):
 
     table = 'risk_exposure'
 
-    _ = uqer.Client(username='13817268186', password='we083826')
     df = api.RMExposureDayGet(tradeDate=ref_date)
     df.rename(columns={'tradeDate': 'Date', 'ticker': 'Code'}, inplace=True)
     df.Code = df.Code.astype(int)
