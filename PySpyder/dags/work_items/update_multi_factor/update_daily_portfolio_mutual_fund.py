@@ -20,6 +20,7 @@ from alphamind.analysis.factoranalysis import build_portfolio
 from simpleutils import CustomLogger
 from PyFin.api import isBizDay
 from PyFin.api import advanceDateByCalendar
+import get_etf_index_weight
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
@@ -57,27 +58,25 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
     factor_weights = factor_weights / factor_weights.sum()
 
-    index_components = '500Weight'
-
     engine = sqlalchemy.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/multifactor?charset=utf8')
 
-    common_factors_df = pd.read_sql("select Date, Code, 申万一级行业, {0} from factor_data where Date = '{1}'"
+    common_factors_df = pd.read_sql("select Code, 申万一级行业, {0} from factor_data where Date = '{1}'"
                                     .format(','.join(common_factors), prev_date), engine)
 
-    prod_factors_df = pd.read_sql("select Date, Code, {0} from prod_500 where Date = '{1}'"
+    prod_factors_df = pd.read_sql("select Code, {0} from prod_500 where Date = '{1}'"
                                   .format(','.join(prod_factors), prev_date), engine)
 
-    risk_factor_df = pd.read_sql("select Date, Code, {0} from risk_factor_500 where Date = '{1}'"
+    risk_factor_df = pd.read_sql("select Code, {0} from risk_factor_500 where Date = '{1}'"
                                  .format(','.join(risk_factors_500), prev_date), engine)
 
-    index_components_df = pd.read_sql("select Date, Code, {0} from index_components where Date = '{1}'"
-                                      .format(index_components, prev_date), engine)
+    index_components_df = get_etf_index_weight.get_nffund_idx_etf_component(prev_date.strftime('%Y%m%d'), index='zz500')
+    index_industry_weights = get_etf_index_weight.get_sw_industry_weight(index_components_df)
+    index_components_df.rename(columns={'weight': 'benchmark'}, inplace=True)
 
-    total_data = pd.merge(common_factors_df, prod_factors_df, on=['Date', 'Code'])
-    total_data = pd.merge(total_data, risk_factor_df, on=['Date', 'Code'])
-    total_data = pd.merge(total_data, index_components_df, on=['Date', 'Code'])
-    total_data = total_data[total_data[index_components] != 0]
-    total_data[index_components] = total_data[index_components] / 100.0
+    total_data = pd.merge(common_factors_df, prod_factors_df, on=['Code'])
+    total_data = pd.merge(total_data, risk_factor_df, on=['Code'])
+    total_data = pd.merge(total_data, index_components_df, on=['Code'])
+    total_data = total_data[total_data['benchmark'] != 0]
 
     total_factors = common_factors + prod_factors
     risk_factors_names = risk_factors_500 + ['Market']
@@ -89,17 +88,32 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     factor_processed = neutralize(risk_factors.values,
                                   standardize(winsorize_normal(all_factors.values)))
 
-    normed_factor = pd.DataFrame(factor_processed, columns=total_factors, index=total_data.Date)
+    normed_factor = pd.DataFrame(factor_processed, columns=total_factors, index=[prev_date] * len(factor_processed))
 
     er = normed_factor @ factor_weights
 
     # portfolio construction
-    bm = total_data[index_components].values
+    bm = total_data['benchmark'].values
     lbound = np.zeros(len(total_data))
     ubound = 0.01 + bm
     risk_exposure = total_data[risk_factors_names].values
-    risk_lbound = bm @ risk_exposure
-    risk_ubound = bm @ risk_exposure
+
+    if len(bm) != 500:
+
+        total_weight = index_industry_weights['weight'].sum()
+        filtered = index_industry_weights[index_industry_weights.industry.isin(risk_factors_500)]
+
+        ind_weights = filtered['weight'].values
+
+        risk_lbound = np.concatenate([ind_weights / total_weight,
+                                      [bm @ total_data['Size'].values / total_weight],
+                                      [1.]], axis=0)
+        risk_ubound = np.concatenate([ind_weights / total_weight,
+                                      [bm @ total_data['Size'].values / total_weight],
+                                      [1.]], axis=0)
+    else:
+        risk_lbound = bm @ risk_exposure
+        risk_ubound = bm @ risk_exposure
 
     # set market segment exposure limit
     exchange_flag = np.array([1.0 if code > 600000 else 0. for code in total_data.Code])
@@ -166,7 +180,7 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
 
     portfolio = pd.DataFrame({'weight': weights,
                               'industry': total_data['申万一级行业'].values,
-                              'zz500': total_data[index_components].values,
+                              'zz500': total_data['benchmark'].values,
                               'er': er}, index=total_data.Code)
 
     client = pymongo.MongoClient('mongodb://10.63.6.176:27017')
@@ -174,7 +188,7 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     portfolio_collection = db.portfolio_mutal_fund
 
     detail_info = {}
-    for code, w, bm_w, ind, r in zip(total_data.Code.values, weights, total_data[index_components].values,
+    for code, w, bm_w, ind, r in zip(total_data.Code.values, weights, total_data['benchmark'].values,
                                      total_data['申万一级行业'].values, er):
         detail_info[str(code)] = {
             'weight': w,
@@ -202,4 +216,4 @@ run_this1 = PythonOperator(
 )
 
 if __name__ == '__main__':
-    update_daily_portfolio_mutual_fund(None, next_execution_date=dt.datetime(2017, 5, 31))
+    update_daily_portfolio_mutual_fund(None, next_execution_date=dt.datetime(2017, 6, 14))
