@@ -26,23 +26,7 @@ strategy1_factor_weights = strategy1_factor_weights / strategy1_factor_weights.s
 strategy2_factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 15.44 * 2.])
 strategy2_factor_weights = strategy2_factor_weights / strategy2_factor_weights.sum()
 
-alpha_strategy = {
-    'strategy1':
-        {
-            'EPSAfterNonRecurring': strategy1_factor_weights[0],
-            'DivP': strategy1_factor_weights[1],
-            'CFinc1': strategy1_factor_weights[2],
-            'BDTO': strategy1_factor_weights[3],
-            'RVOL': strategy1_factor_weights[4],
-        },
-    'strategy2':
-        {
-            'EPSAfterNonRecurring': strategy2_factor_weights[0],
-            'DivP': strategy2_factor_weights[1],
-            'CFinc1': strategy2_factor_weights[2],
-            'CFPS':  strategy2_factor_weights[3],
-        }
-}
+alpha_strategy = {}
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 

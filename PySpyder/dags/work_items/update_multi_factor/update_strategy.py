@@ -41,12 +41,19 @@ alpha_strategy = {
             'DivP': strategy2_factor_weights[1],
             'CFinc1': strategy2_factor_weights[2],
             'CFPS':  strategy2_factor_weights[3],
+        },
+    'strategy3':
+        {
+            'VAL': 1.,
+            'EPS': 1.,
+            'CFinc1': 1.,
+            'PEG3Y': 1.,
         }
 }
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
-start_date = dt.datetime(2012, 1, 1)
+start_date = dt.datetime(2017, 1, 5)
 dag_name = 'update_strategy_analysis'
 
 default_args = {
@@ -62,6 +69,7 @@ dag = DAG(
 )
 
 source_db = sa.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/multifactor?charset=utf8')
+source_db2 = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
 destination_db = sa.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/factor_analysis?charset=utf8')
 
 
@@ -108,6 +116,11 @@ def get_all_the_factors(ref_date, engine, codes=None):
         common_500 = pd.read_sql(
             "select * from common_500 where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), engine)
         del common_500['Date']
+
+        uqer_factors = pd.read_sql(
+            "select * from factor_uqer where Date = '{0}' and Code in ({1})".format(ref_date, codes_list), source_db2)
+        del uqer_factors['Date']
+
     else:
         common_factors = pd.read_sql(
             "select * from factor_data where Date = '{0}'".format(ref_date, codes_list), engine)
@@ -121,9 +134,13 @@ def get_all_the_factors(ref_date, engine, codes=None):
         common_500 = pd.read_sql(
             "select * from common_500 where Date = '{0}'".format(ref_date), engine)
         del common_500['Date']
+        uqer_factors = pd.read_sql(
+            "select * from factor_uqer where Date = '{0}'".format(ref_date), source_db2)
+        del uqer_factors['Date']
 
     total_factors = pd.merge(prod_factors, common_factors, on=['Code'], how='left')
     total_factors = pd.merge(total_factors, common_500, on=['Code'], how='left')
+    total_factors = pd.merge(total_factors, uqer_factors, on=['Code'], how='left')
 
     total_factors.dropna(axis=1, how='all', inplace=True)
     total_factors.fillna(total_factors.mean(), inplace=True)
@@ -270,7 +287,7 @@ def create_ond_day_pos(query_date, engine, big_universe=False, risk_neutral=True
     return pos_df, total_data
 
 
-def update_factor_performance(ds, **kwargs):
+def update_strategy_performance(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -310,12 +327,12 @@ def update_factor_performance(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    return_table['source'] = 'tiny'
+    return_table['source'] = 'strategy'
     return_table['universe'] = 'zz500'
     upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_top_100(ds, **kwargs):
+def update_strategy_performance_top_100(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -356,12 +373,12 @@ def update_factor_performance_top_100(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    return_table['source'] = 'tiny'
+    return_table['source'] = 'strategy'
     return_table['universe'] = 'zz500'
     upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_big_universe(ds, **kwargs):
+def update_strategy_performance_big_universe(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -401,12 +418,12 @@ def update_factor_performance_big_universe(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    return_table['source'] = 'tiny'
+    return_table['source'] = 'strategy'
     return_table['universe'] = 'zz500_expand'
     upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_big_universe_top_100(ds, **kwargs):
+def update_strategy_performance_big_universe_top_100(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -447,38 +464,38 @@ def update_factor_performance_big_universe_top_100(ds, **kwargs):
     pos_diff_series = pos_diff_series.reset_index()
 
     return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    return_table['source'] = 'tiny'
+    return_table['source'] = 'strategy'
     return_table['universe'] = 'zz500_expand'
     upload(ref_date, return_table, destination_db, 'performance')
 
 
 run_this1 = PythonOperator(
-    task_id='update_factor_performance',
+    task_id='update_strategy_performance',
     provide_context=True,
-    python_callable=update_factor_performance,
+    python_callable=update_strategy_performance,
     dag=dag
 )
 
 run_this2 = PythonOperator(
-    task_id='update_factor_performance_big_universe',
+    task_id='update_strategy_performance_big_universe',
     provide_context=True,
-    python_callable=update_factor_performance_big_universe,
+    python_callable=update_strategy_performance_big_universe,
     dag=dag
 )
 
 run_this3 = PythonOperator(
-    task_id='update_factor_performance_top_100',
+    task_id='update_strategy_performance_top_100',
     provide_context=True,
-    python_callable=update_factor_performance_top_100,
+    python_callable=update_strategy_performance_top_100,
     dag=dag
 )
 
 run_this4 = PythonOperator(
-    task_id='update_factor_performance_big_universe_top_100',
+    task_id='update_strategy_performance_big_universe_top_100',
     provide_context=True,
-    python_callable=update_factor_performance_big_universe_top_100,
+    python_callable=update_strategy_performance_big_universe_top_100,
     dag=dag
 )
 
 if __name__ == '__main__':
-    update_factor_performance_big_universe_top_100(None, next_execution_date=dt.datetime(2017, 1, 5))
+    update_strategy_performance_big_universe_top_100(None, next_execution_date=dt.datetime(2017, 1, 6))
