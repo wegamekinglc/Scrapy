@@ -68,9 +68,9 @@ dag = DAG(
     schedule_interval='0 19 * * 1,2,3,4,5'
 )
 
-source_db = sa.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/multifactor?charset=utf8')
+source_db = sa.create_engine('mysql+mysqldb://sa::We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
 source_db2 = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
-destination_db = sa.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/factor_analysis?charset=utf8')
+destination_db = sa.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/factor_analysis?charset=utf8')
 
 
 def get_industry_codes(ref_date, engine):
