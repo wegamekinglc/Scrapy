@@ -25,7 +25,7 @@ alpha_strategy = {}
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
-start_date = dt.datetime(2012, 1, 1)
+start_date = dt.datetime(2017, 1, 5)
 dag_name = 'update_style_analysis'
 
 default_args = {

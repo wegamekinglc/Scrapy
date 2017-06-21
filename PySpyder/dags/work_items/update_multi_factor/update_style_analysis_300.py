@@ -25,7 +25,7 @@ alpha_strategy = {}
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
-start_date = dt.datetime(2012, 1, 1)
+start_date = dt.datetime(2017, 1, 5)
 dag_name = 'update_style_analysis_300'
 
 default_args = {
@@ -258,97 +258,6 @@ def create_ond_day_pos(query_date, engine, big_universe=False, risk_neutral=True
     return pos_df, total_data
 
 
-def update_style_performance(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']
-    if not isBizDay('china.sse', ref_date):
-        logger.info("{0} is not a business day".format(ref_date))
-        return 0
-
-    ref_date = advanceDateByCalendar('china.sse', ref_date, '-2b')
-    ref_date = ref_date.strftime('%Y-%m-%d')
-    previous_date = advanceDateByCalendar('china.sse', ref_date, '-1b')
-
-    this_day_pos, total_data = create_ond_day_pos(ref_date, source_db)
-    last_day_pos, _ = create_ond_day_pos(previous_date, source_db)
-
-    return_table = settlement(ref_date, this_day_pos, total_data['bm'].values, total_data['D1LogReturn'].values)
-
-    pos_diff_dict = {}
-
-    for name in this_day_pos.columns.difference(['industry']):
-        for ind in this_day_pos.industry.unique():
-            pos_series = this_day_pos.loc[this_day_pos.industry == ind, name]
-            if name in last_day_pos:
-                last_series = last_day_pos.loc[last_day_pos.industry == ind, name]
-                pos_diff = pos_series.sub(last_series, fill_value=0)
-            else:
-                pos_diff = pos_series
-            pos_diff_dict[(name, ind)] = pos_diff.abs().sum()
-
-        pos_series = this_day_pos[name]
-        if name in last_day_pos:
-            last_series = last_day_pos[name]
-            pos_diff = pos_series.sub(last_series, fill_value=0)
-        else:
-            pos_diff = pos_series
-        pos_diff_dict[(name, 'total')] = pos_diff.abs().sum()
-
-    pos_diff_series = pd.Series(pos_diff_dict, name='turn_over')
-    pos_diff_series.index.names = ['portfolio', 'industry']
-    pos_diff_series = pos_diff_series.reset_index()
-
-    return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    return_table['source'] = 'style'
-    return_table['universe'] = 'hs300'
-    upload(ref_date, return_table, destination_db, 'performance')
-
-
-def update_style_performance_top_100(ds, **kwargs):
-    ref_date = kwargs['next_execution_date']
-    if not isBizDay('china.sse', ref_date):
-        logger.info("{0} is not a business day".format(ref_date))
-        return 0
-
-    ref_date = advanceDateByCalendar('china.sse', ref_date, '-2b')
-    ref_date = ref_date.strftime('%Y-%m-%d')
-    previous_date = advanceDateByCalendar('china.sse', ref_date, '-1b')
-
-    this_day_pos, total_data = create_ond_day_pos(ref_date, source_db, risk_neutral=False)
-    last_day_pos, _ = create_ond_day_pos(previous_date, source_db, risk_neutral=False)
-
-    return_table = settlement(ref_date, this_day_pos, total_data['bm'].values, total_data['D1LogReturn'].values,
-                              type='top_100')
-
-    pos_diff_dict = {}
-
-    for name in this_day_pos.columns.difference(['industry']):
-        for ind in this_day_pos.industry.unique():
-            pos_series = this_day_pos.loc[this_day_pos.industry == ind, name]
-            if name in last_day_pos:
-                last_series = last_day_pos.loc[last_day_pos.industry == ind, name]
-                pos_diff = pos_series.sub(last_series, fill_value=0)
-            else:
-                pos_diff = pos_series
-            pos_diff_dict[(name, ind)] = pos_diff.abs().sum()
-
-        pos_series = this_day_pos[name]
-        if name in last_day_pos:
-            last_series = last_day_pos[name]
-            pos_diff = pos_series.sub(last_series, fill_value=0)
-        else:
-            pos_diff = pos_series
-        pos_diff_dict[(name, 'total')] = pos_diff.abs().sum()
-
-    pos_diff_series = pd.Series(pos_diff_dict, name='turn_over')
-    pos_diff_series.index.names = ['portfolio', 'industry']
-    pos_diff_series = pos_diff_series.reset_index()
-
-    return_table = pd.merge(return_table, pos_diff_series, on=['portfolio', 'industry'])
-    return_table['source'] = 'style'
-    return_table['universe'] = 'hs300'
-    upload(ref_date, return_table, destination_db, 'performance')
-
-
 def update_style_performance_big_universe(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
@@ -440,13 +349,6 @@ def update_style_performance_big_universe_top_100(ds, **kwargs):
     upload(ref_date, return_table, destination_db, 'performance')
 
 
-run_this1 = PythonOperator(
-    task_id='update_style_performance',
-    provide_context=True,
-    python_callable=update_style_performance,
-    dag=dag
-)
-
 run_this2 = PythonOperator(
     task_id='update_style_performance_big_universe',
     provide_context=True,
@@ -454,12 +356,6 @@ run_this2 = PythonOperator(
     dag=dag
 )
 
-run_this3 = PythonOperator(
-    task_id='update_style_performance_top_100',
-    provide_context=True,
-    python_callable=update_style_performance_top_100,
-    dag=dag
-)
 
 run_this4 = PythonOperator(
     task_id='update_style_performance_big_universe_top_100',
