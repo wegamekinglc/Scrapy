@@ -48,6 +48,11 @@ alpha_strategy = {
             'EPS': 1.,
             'CFinc1': 1.,
             'PEG3Y': 1.,
+        },
+    'strategy4':
+        {
+            'EPS': 2.0,
+            'CoppockCurve': -1.0,
         }
 }
 
