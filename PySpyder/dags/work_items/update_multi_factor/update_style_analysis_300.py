@@ -26,7 +26,7 @@ alpha_strategy = {}
 logger = CustomLogger('MULTI_FACTOR', 'info')
 
 start_date = dt.datetime(2012, 1, 1)
-dag_name = 'update_factor_analysis'
+dag_name = 'update_style_analysis_300'
 
 default_args = {
     'owner': 'wegamekinglc',
@@ -258,7 +258,7 @@ def create_ond_day_pos(query_date, engine, big_universe=False, risk_neutral=True
     return pos_df, total_data
 
 
-def update_factor_performance(ds, **kwargs):
+def update_style_performance(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -303,7 +303,7 @@ def update_factor_performance(ds, **kwargs):
     upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_top_100(ds, **kwargs):
+def update_style_performance_top_100(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -349,7 +349,7 @@ def update_factor_performance_top_100(ds, **kwargs):
     upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_big_universe(ds, **kwargs):
+def update_style_performance_big_universe(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -394,7 +394,7 @@ def update_factor_performance_big_universe(ds, **kwargs):
     upload(ref_date, return_table, destination_db, 'performance')
 
 
-def update_factor_performance_big_universe_top_100(ds, **kwargs):
+def update_style_performance_big_universe_top_100(ds, **kwargs):
     ref_date = kwargs['next_execution_date']
     if not isBizDay('china.sse', ref_date):
         logger.info("{0} is not a business day".format(ref_date))
@@ -441,32 +441,32 @@ def update_factor_performance_big_universe_top_100(ds, **kwargs):
 
 
 run_this1 = PythonOperator(
-    task_id='update_factor_performance',
+    task_id='update_style_performance',
     provide_context=True,
-    python_callable=update_factor_performance,
+    python_callable=update_style_performance,
     dag=dag
 )
 
 run_this2 = PythonOperator(
-    task_id='update_factor_performance_big_universe',
+    task_id='update_style_performance_big_universe',
     provide_context=True,
-    python_callable=update_factor_performance_big_universe,
+    python_callable=update_style_performance_big_universe,
     dag=dag
 )
 
 run_this3 = PythonOperator(
-    task_id='update_factor_performance_top_100',
+    task_id='update_style_performance_top_100',
     provide_context=True,
-    python_callable=update_factor_performance_top_100,
+    python_callable=update_style_performance_top_100,
     dag=dag
 )
 
 run_this4 = PythonOperator(
-    task_id='update_factor_performance_big_universe_top_100',
+    task_id='update_style_performance_big_universe_top_100',
     provide_context=True,
-    python_callable=update_factor_performance_big_universe_top_100,
+    python_callable=update_style_performance_big_universe_top_100,
     dag=dag
 )
 
 if __name__ == '__main__':
-    update_factor_performance_big_universe_top_100(None, next_execution_date=dt.datetime(2017, 1, 6))
+    update_style_performance_big_universe_top_100(None, next_execution_date=dt.datetime(2017, 1, 6))
