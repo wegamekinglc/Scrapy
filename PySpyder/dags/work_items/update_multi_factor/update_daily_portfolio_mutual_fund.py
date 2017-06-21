@@ -87,7 +87,7 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     null_flags = np.any(np.isnan(total_data[uqer_factors]), axis=1)
     total_data.fillna(0, inplace=True)
 
-    total_factors = common_factors + prod_factors
+    total_factors = uqer_factors
     risk_factors_names = risk_factors_500 + ['Market']
     total_data['Market'] = 1.
 
