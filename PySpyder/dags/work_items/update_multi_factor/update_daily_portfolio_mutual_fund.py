@@ -54,14 +54,11 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
 
     common_factors = ['EPSAfterNonRecurring', 'DivP']
     prod_factors = ['CFinc1', 'BDTO', 'RVOL']
-    uqer_factors = ['CoppockCurve', 'EPS']
 
-    factor_weights = np.array([-1.0, 2.0])
+    factor_weights = 1. / np.array([15.44 * 2., 32.72 * 2., 49.90, 115.27, 97.76])
     factor_weights = factor_weights / factor_weights.sum()
 
     engine = sqlalchemy.create_engine('mysql+mysqldb://sa:we083826@10.63.6.176/multifactor?charset=utf8')
-    engine2 = sqlalchemy.create_engine(
-        'mysql+pymysql://sa:We051253524522@rm-bp1psdz5615icqc0yo.mysql.rds.aliyuncs.com:3306/multifactor?charset=utf8')
 
     common_factors_df = pd.read_sql("select Code, 申万一级行业, {0} from factor_data where Date = '{1}'"
                                     .format(','.join(common_factors), prev_date), engine)
@@ -72,22 +69,16 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     risk_factor_df = pd.read_sql("select Code, {0} from risk_factor_500 where Date = '{1}'"
                                  .format(','.join(risk_factors_500), prev_date), engine)
 
-    uqer_factor_df = pd.read_sql(
-        "select Code, {0} from factor_uqer where Date = '{1}'".format(','.join(uqer_factors), prev_date), engine2)
-
     index_components_df = get_etf_index_weight.get_nffund_idx_etf_component(prev_date.strftime('%Y%m%d'), index='zz500')
     index_industry_weights = get_etf_index_weight.get_sw_industry_weight(index_components_df)
     index_components_df.rename(columns={'weight': 'benchmark'}, inplace=True)
 
-    total_data = pd.merge(common_factors_df, uqer_factor_df, on=['Code'])
+    total_data = pd.merge(common_factors_df, prod_factors_df, on=['Code'])
     total_data = pd.merge(total_data, risk_factor_df, on=['Code'])
     total_data = pd.merge(total_data, index_components_df, on=['Code'])
     total_data = total_data[total_data['benchmark'] != 0]
 
-    null_flags = np.any(np.isnan(total_data[uqer_factors]), axis=1)
-    total_data.fillna(0, inplace=True)
-
-    total_factors = uqer_factors
+    total_factors = common_factors + prod_factors
     risk_factors_names = risk_factors_500 + ['Market']
     total_data['Market'] = 1.
 
@@ -106,8 +97,6 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     lbound = np.zeros(len(total_data))
     ubound = 0.01 + bm
     risk_exposure = total_data[risk_factors_names].values
-
-    ubound[null_flags] = 0.
 
     if len(bm) != 500:
 

@@ -364,5 +364,6 @@ run_this4 = PythonOperator(
     dag=dag
 )
 
+
 if __name__ == '__main__':
     update_style_performance_big_universe_top_100(None, next_execution_date=dt.datetime(2017, 1, 6))
