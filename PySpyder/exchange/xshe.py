@@ -59,7 +59,7 @@ def suspend(query_date):
             if rows:
                 for row in rows:
                     cells = row.find_all('td')
-                    if cells:
+                    if cells and len(cells) >= 6:
                         codes.append(cells[0].text)
                         names.append(cells[1].text)
 
