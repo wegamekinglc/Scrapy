@@ -13,7 +13,6 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.models import DAG
 from uqer import DataAPI as api
 from simpleutils import CustomLogger
-from PyFin.api import advanceDateByCalendar
 
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
@@ -48,25 +47,6 @@ def process_date(ds):
 
 def update_uqer_factors(ds, **kwargs):
     ref_date, _ = process_date(ds)
-
-    table = 'factor_uqer'
-
-    df = api.MktStockFactorsOneDayProGet(tradeDate=ref_date)
-    df.rename(columns={'tradeDate': 'Date', 'ticker': 'Code'}, inplace=True)
-    df.Code = df.Code.astype(int)
-    del df['secID']
-
-    engine1.execute("delete from {0} where Date = '{1}';".format(table, ref_date))
-    df.to_sql(table, engine1, index=False, if_exists='append')
-
-    table = 'factors'
-    engine2.execute("delete from {0} where Date = '{1}';".format(table, ref_date))
-    df.to_sql(table, engine2, index=False, if_exists='append')
-
-
-def update_uqer_factors_next_day(ds, **kwargs):
-    ref_date, _ = process_date(ds)
-    ref_date = advanceDateByCalendar('China.SSE', ref_date, '1b')
 
     table = 'factor_uqer'
 
@@ -235,13 +215,6 @@ _ = PythonOperator(
     task_id='update_uqer_factors',
     provide_context=True,
     python_callable=update_uqer_factors,
-    dag=dag
-)
-
-_ = PythonOperator(
-    task_id='update_uqer_factors_next_day',
-    provide_context=True,
-    python_callable=update_uqer_factors_next_day,
     dag=dag
 )
 
