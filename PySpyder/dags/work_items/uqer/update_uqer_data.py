@@ -212,7 +212,7 @@ def update_uqer_risk_model(ds, **kwargs):
     df.to_sql(table, engine2, index=False, if_exists='append')
 
 
-def update_uqer_daily_return(ds, *kwargs):
+def update_uqer_daily_return(ds, **kwargs):
     ref_date, this_date = process_date(ds)
     previous_date = advanceDateByCalendar('china.sse', this_date, '-1b').strftime('%Y-%m-%d')
 
