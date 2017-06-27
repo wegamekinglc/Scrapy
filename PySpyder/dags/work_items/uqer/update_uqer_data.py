@@ -13,6 +13,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.models import DAG
 from uqer import DataAPI as api
 from simpleutils import CustomLogger
+from PyFin.api import advanceDateByCalendar
 
 
 logger = CustomLogger('MULTI_FACTOR', 'info')
@@ -211,6 +212,18 @@ def update_uqer_risk_model(ds, **kwargs):
     df.to_sql(table, engine2, index=False, if_exists='append')
 
 
+def update_uqer_daily_return(ds, *kwargs):
+    ref_date, this_date = process_date(ds)
+    previous_date = advanceDateByCalendar('china.sse', this_date, '-1b').strftime('%Y-%m-%d')
+
+    table = 'daily_return'
+
+    df = pd.read_sql("select Code, chgPct as d1 from market where Date = '{0}'".format(this_date), engine2)
+    df['Date'] = previous_date
+    engine2.execute("delete from {0} where Date = '{1}'".format(table, previous_date))
+    df.to_sql(table, engine2, index=False, if_exists='append')
+
+
 _ = PythonOperator(
     task_id='update_uqer_factors',
     provide_context=True,
@@ -219,12 +232,21 @@ _ = PythonOperator(
 )
 
 
-_ = PythonOperator(
+task = PythonOperator(
     task_id='update_uqer_market',
     provide_context=True,
     python_callable=update_uqer_market,
     dag=dag
 )
+
+sub_task1 = PythonOperator(
+    task_id='update_uqer_daily_return',
+    provide_context=True,
+    python_callable=update_uqer_daily_return,
+    dag=dag
+)
+
+sub_task1.set_upstream(task)
 
 
 task = PythonOperator(
