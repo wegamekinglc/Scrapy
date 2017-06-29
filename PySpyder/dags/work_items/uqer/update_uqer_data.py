@@ -34,7 +34,7 @@ dag = DAG(
 )
 
 
-_ = uqer.Client(username='13817268186', password='we083826')
+_ = uqer.Client(token='f1b9bea1d0b4e489c5ab9b69c3e2326a1bee6057af858067dbd1546453f428b2')
 engine1 = sqlalchemy.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/multifactor?charset=utf8')
 engine2 = sqlalchemy.create_engine('mysql+mysqldb://sa:We051253524522@rm-bp1psdz5615icqc0y.mysql.rds.aliyuncs.com/uqer?charset=utf8')
 
