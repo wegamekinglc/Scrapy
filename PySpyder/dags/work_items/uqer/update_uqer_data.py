@@ -59,7 +59,7 @@ def update_uqer_factors(ds, **kwargs):
     engine1.execute("delete from {0} where Date = '{1}';".format(table, ref_date))
     df.to_sql(table, engine1, index=False, if_exists='append')
 
-    table = 'factors'
+    table = 'uqer'
     engine2.execute("delete from {0} where Date = '{1}';".format(table, ref_date))
     df.to_sql(table, engine2, index=False, if_exists='append')
 
