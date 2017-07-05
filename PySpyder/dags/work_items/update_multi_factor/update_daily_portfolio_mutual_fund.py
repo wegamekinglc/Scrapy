@@ -124,8 +124,7 @@ def update_daily_portfolio_mutual_fund(ds, **kwargs):
     # get black list 1
     engine = sqlalchemy.create_engine('mssql+pymssql://sa:A12345678!@10.63.6.100/WindDB')
     black_list = pd.read_sql("select S_INFO_WINDCODE, S_INFO_LISTDATE, sum(S_SHARE_RATIO) as s_ratio from ASHARECOMPRESTRICTED \
-                              where S_INFO_LISTDATE BETWEEN '{0}' and '{1}' \
-                              and S_SHARE_LSTTYPECODE=479002000 "
+                              where S_INFO_LISTDATE BETWEEN '{0}' and '{1}' " \
                              "GROUP BY S_INFO_WINDCODE, S_INFO_LISTDATE ORDER BY s_ratio DESC;"
                              .format((execution_date - dt.timedelta(days=7)).strftime('%Y%m%d'),
                                      (execution_date + dt.timedelta(days=14)).strftime('%Y%m%d')), engine)
